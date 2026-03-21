@@ -1,0 +1,31 @@
+server:
+  port: 8000
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: fastapi
+              uri: https://backend.mytruyen.online
+              predicates:
+                - Path=/api/**
+          cors:
+            allowed-origins: "*"
+            allowed-methods: "*"
+eureka:
+  client:
+    enabled: false
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.reactive.function.client: DEBUG
+    reactor.netty.http.client: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
