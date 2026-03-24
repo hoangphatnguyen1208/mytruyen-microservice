@@ -1,0 +1,65 @@
+version: "3.8"
+services:
+    mytruyen-db:
+        container_name: mytruyen-db
+        image: postgres:15
+        env_file:
+            - .env
+        ports:
+            - ${POSTGRES_EXTERNAL_PORT}:5432
+        volumes:
+            - db-data:/var/lib/postgresql/data
+        networks:
+            - mytruyen-net
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+                ]
+            interval: 10s
+            timeout: 10s
+            retries: 5
+
+    mytruyen-be:
+        container_name: mytruyen-be
+        image: hoangphat120805/mytruyen-be:latest
+        env_file:
+            - .env
+        depends_on:
+            mytruyen-db:
+                condition: service_healthy
+        ports:
+            - "8000:8000"
+        volumes:
+            - /models:/app/models
+        networks:
+            - mytruyen-net
+        command: >
+            bash -c "
+            alembic upgrade head &&
+            uvicorn app.main:app --host 0.0.0.0 --port 8000
+            "
+    
+    mytruyen-redis:
+        container_name: mytruyen-redis
+        image: redis:7
+        env_file:
+            - .env
+        ports:
+        - "6379:6379"
+        command: redis-server --requirepass ${REDIS_PASSWORD}
+        networks:
+        - mytruyen-net
+        healthcheck:
+            test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    db-data:
+
+networks:
+    mytruyen-net:
+        driver: bridge

@@ -1,10 +1,11 @@
-package online.mytruyen.userservice;
+package online.mytruyen.userservice.controller;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import online.mytruyen.userservice.service.UserService;
 import online.mytruyen.userservice.common.PageResponse;
 import online.mytruyen.userservice.common.Pagination;
 import online.mytruyen.userservice.common.Response;
+import online.mytruyen.userservice.entity.UserEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

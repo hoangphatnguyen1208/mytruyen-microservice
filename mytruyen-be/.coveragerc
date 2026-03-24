@@ -1,0 +1,17 @@
+[run]
+source = app
+concurrency = thread,greenlet
+omit =
+    */tests/*
+    */conftest.py
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+[html]
+directory = htmlcov

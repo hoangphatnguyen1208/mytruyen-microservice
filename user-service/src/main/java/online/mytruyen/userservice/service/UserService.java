@@ -1,6 +1,8 @@
-package online.mytruyen.userservice;
+package online.mytruyen.userservice.service;
 
 import lombok.AllArgsConstructor;
+import online.mytruyen.userservice.entity.UserEntity;
+import online.mytruyen.userservice.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,4 +14,7 @@ public class UserService {
         return userRepository.findAll(pageable);
     }
 
+    public UserEntity getUserByUsername(String username) {
+        return userRepository.findByUserName(username);
+    }
 }
