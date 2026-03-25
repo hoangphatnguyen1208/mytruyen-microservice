@@ -24,7 +24,7 @@ public class JwtService {
                 .getBody();
     }
 
-    public String extractUsername(String token) {
+    public String extractId(String token) {
         return extractAllClaims(token).getSubject();
     }
 
@@ -32,8 +32,8 @@ public class JwtService {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
-    public Boolean isTokenValid(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        return (extractedUsername.equals(username) && !isTokenExpired(token));
+    public Boolean isTokenValid(String token, String id) {
+        final String extractedId = extractId(token);
+        return (extractedId.equals(id) && !isTokenExpired(token));
     }
 }

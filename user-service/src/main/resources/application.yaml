@@ -2,15 +2,19 @@ spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:postgresql://dpg-d6u2ho7fte5s73853i30-a.singapore-postgres.render.com/user_db_0u69
-    username: user_db_0u69_user
-    password: RVTofVqUnWySs2AFdH21Xu0UXJYAZ4a4
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
 
 jwt:
-  secret: vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=
-  algorithm: HS256
-  expiration: 8640000000
+  secret: ${JWT_SECRET}
+  algorithm: ${JWT_ALGORITHM}
+  expiration: ${JWT_EXPIRATION}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
