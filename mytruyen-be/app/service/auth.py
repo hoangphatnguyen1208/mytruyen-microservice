@@ -1,5 +1,4 @@
-from app.crud import auth as auth_crud, user
-from app.crud import user as user_crud
+from app.crud import auth as auth_crud
 
 from app.schema.auth import Token
 from datetime import timedelta, datetime

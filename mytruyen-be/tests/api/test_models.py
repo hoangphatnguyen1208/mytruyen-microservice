@@ -11,25 +11,6 @@ class TestModels:
     """Test database models"""
 
     @pytest.mark.asyncio
-    async def test_user_model_creation(self, db_session: AsyncSession):
-        """Test tạo User model"""
-        user = User(
-            id=uuid.uuid4(),
-            email="model_test@example.com",
-            hashed_password="hashedpassword",
-            full_name="Model Test",
-            role=user_role.USER
-        )
-        db_session.add(user)
-        await db_session.commit()
-        await db_session.refresh(user)
-        
-        assert user.email == "model_test@example.com"
-        assert user.full_name == "Model Test"
-        assert user.role == user_role.USER
-        assert user.is_active is True
-
-    @pytest.mark.asyncio
     async def test_user_model_with_admin_role(self, db_session: AsyncSession):
         """Test tạo User với role ADMIN"""
         admin = User(

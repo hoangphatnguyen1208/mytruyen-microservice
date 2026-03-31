@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import online.mytruyen.userservice.entity.RoleEntity;
 import online.mytruyen.userservice.entity.UserEntity;
+import online.mytruyen.userservice.exception.RoleNotFoundException;
 import online.mytruyen.userservice.repository.RoleRepository;
 import online.mytruyen.userservice.repository.UserRepository;
 import org.jspecify.annotations.NonNull;
@@ -29,8 +30,9 @@ public class InitialDataLoader implements CommandLineRunner {
              log.info(">>> Created default roles: ROLE_ADMIN, ROLE_USER");
         }
 
-        if (userRepository.findByUsername("admin") == null) {
-            RoleEntity adminRole = roleRepository.findByName("ROLE_ADMIN");
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            RoleEntity adminRole = roleRepository.findByName("ROLE_ADMIN")
+                    .orElseThrow(() -> new RoleNotFoundException("Role not found with name: ROLE_ADMIN"));
 
             UserEntity admin = new UserEntity();
             admin.setUsername("admin");

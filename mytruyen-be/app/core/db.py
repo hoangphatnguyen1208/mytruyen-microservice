@@ -17,19 +17,6 @@ async_session_factory = async_sessionmaker(
     expire_on_commit=False
 )
 
-async def init_db(session: AsyncSession):
-    # async with async_engine.begin() as conn:
-    #     await conn.run_sync(SQLModel.metadata.create_all)
-    existing = await crud_user.get_user_by_email(session, settings.FIRST_ADMIN_EMAIL)
-    if not existing:
-        admin_in = UserCreate(
-            email=settings.FIRST_ADMIN_EMAIL,
-            password=settings.FIRST_ADMIN_PASSWORD,
-            role=UserRole.ADMIN
-        )
-        await crud_user.create_user(session, admin_in)
-        print(f"Created initial admin user with email: {settings.FIRST_ADMIN_EMAIL}")
-
 import redis
 
 r = redis.Redis(

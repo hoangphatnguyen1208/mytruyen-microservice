@@ -1,6 +1,5 @@
-package online.mytruyen.userservice.common;
+package online.mytruyen.authservice.common;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -9,7 +8,6 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Response<T> {
     private int status_code;
     private boolean status;
@@ -30,6 +28,7 @@ public class Response<T> {
                 .status_code(status_code)
                 .status(false)
                 .message(message)
+                .data(null)
                 .build();
     }
 }

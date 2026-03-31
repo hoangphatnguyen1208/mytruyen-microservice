@@ -28,7 +28,14 @@ public class UserService {
     }
 
     public UserPublic getUserByUsername(String username) {
-        UserEntity user = userRepository.findByUsername(username);
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return new UserPublic(user);
+    }
+
+    public UserPublic getUserById(String id) {
+        UserEntity user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return new UserPublic(user);
     }
 
@@ -45,13 +52,14 @@ public class UserService {
     }
 
     public UserPublic updateMe(UserUpdate userUpdate, UserDetails userDetails) {
-        UserEntity user = userRepository.findByUsername(userDetails.getUsername());
+        UserEntity user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (user.getFull_name() != null) {
             user.setFull_name(userUpdate.getFull_name());
         }
 
-        if (userRepository.findByUsername(userUpdate.getUsername()) == null) {
+        if (userRepository.findByUsername(userUpdate.getUsername()).isEmpty()) {
             user.setUsername(userUpdate.getUsername());
         }
 
@@ -60,7 +68,8 @@ public class UserService {
     }
 
     public void deleteMe(UserDetails userDetails) {
-        UserEntity user = userRepository.findByUsername(userDetails.getUsername());
+        UserEntity user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         userRepository.delete(user);
     }
 }

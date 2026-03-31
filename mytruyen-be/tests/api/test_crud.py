@@ -3,7 +3,6 @@ Test cases cho CRUD operations
 """
 import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.crud import user as user_crud
 from app.crud import book as book_crud
 from app.crud import genre as genre_crud
 from app.schema.auth import UserRegister
@@ -11,58 +10,6 @@ from app.schema.book import BookCreate
 from app.schema.genre import GenreCreate
 from app.models import user_role
 import uuid
-
-
-class TestUserCRUD:
-    """Test CRUD operations cho User"""
-
-    @pytest.mark.asyncio
-    async def test_create_user(self, db_session: AsyncSession):
-        """Test tạo user mới"""
-        user_in = UserRegister(
-            email="crud_test@example.com",
-            password="password123",
-        )
-        user = await user_crud.create_user(db_session, user_in)
-        assert user.email == "crud_test@example.com"
-        assert user.role == user_role.USER
-
-    @pytest.mark.asyncio
-    async def test_get_user_by_email(self, db_session: AsyncSession, test_user):
-        """Test lấy user theo email"""
-        user = await user_crud.get_user_by_email(
-            db_session, "testuser@example.com"
-        )
-        assert user is not None
-        assert user.email == "testuser@example.com"
-
-    @pytest.mark.asyncio
-    async def test_get_user_by_email_not_found(self, db_session: AsyncSession):
-        """Test lấy user với email không tồn tại"""
-        user = await user_crud.get_user_by_email(
-            db_session, "nonexistent@example.com"
-        )
-        assert user is None
-
-    @pytest.mark.asyncio
-    async def test_authenticate_success(self, db_session: AsyncSession, test_user):
-        """Test authentication thành công"""
-        user = await user_crud.authenticate(
-            db_session, "testuser@example.com", "testpassword123"
-        )
-        assert user is not None
-        assert user.email == "testuser@example.com"
-
-    @pytest.mark.asyncio
-    async def test_authenticate_wrong_password(
-        self, db_session: AsyncSession, test_user
-    ):
-        """Test authentication với mật khẩu sai"""
-        user = await user_crud.authenticate(
-            db_session, "testuser@example.com", "wrongpassword"
-        )
-        assert user is None
-
 
 class TestBookCRUD:
     """Test CRUD operations cho Book"""

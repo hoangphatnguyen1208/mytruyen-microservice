@@ -1,4 +1,4 @@
-package online.mytruyen.userservice.common;
+package online.mytruyen.authservice.common;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -13,6 +13,7 @@ public class PageResponse<T> extends Response<T>{
 
     public static <T> PageResponse<T> success(int status_code, T data, Pagination pagination) {
         return PageResponse.<T>builder()
+                .status_code(status_code)
                 .status(true)
                 .message("Success")
                 .data(data)
@@ -22,6 +23,7 @@ public class PageResponse<T> extends Response<T>{
 
     public static <T> PageResponse<T> error(int status_code, String message) {
         return PageResponse.<T>builder()
+                .status_code(status_code)
                 .status(false)
                 .message(message)
                 .data(null)

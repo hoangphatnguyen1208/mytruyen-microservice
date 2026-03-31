@@ -17,31 +17,6 @@ naming_convention = {
 metadata = MetaData(naming_convention=naming_convention)
 SQLModel.metadata = metadata
 
-class user_role(str, Enum):
-    __enum_name__ = "user_role"
-    USER = "user"
-    ADMIN = "admin"
-
-
-class User(SQLModel, table=True):
-    __tablename__ = "user"
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    email: str = Field(index=True, unique=True, nullable=False)
-    hashed_password: str = Field(nullable=False)
-    is_active: bool = Field(default=True)
-    full_name: str | None = Field(default=None)
-    role: user_role = Field(default=user_role.USER,nullable=False)
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), nullable=False),
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), nullable=False, onupdate=lambda: datetime.now(timezone.utc)),
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-
-    books: list["Book"] = Relationship(back_populates="creator")
-
 class Author(SQLModel, table=True):
     __tablename__ = "author"
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -123,7 +98,7 @@ class Book(SQLModel, table=True):
     __tablename__ = "book"
     id: int | None = Field(default=None, primary_key=True)
     author_id: uuid.UUID | None = Field(default=None, foreign_key="author.id", nullable=True, index=True)
-    creator_id: uuid.UUID = Field(foreign_key="user.id", nullable=False, index=True)
+    creator_id: uuid.UUID = Field(nullable=False, index=True)
     name: str = Field(index=True, nullable=False)
     slug: str = Field(index=True, unique=True, nullable=False)
     kind: int = Field(index=True, nullable=False)

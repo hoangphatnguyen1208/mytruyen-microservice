@@ -1,5 +1,5 @@
 server:
-  port: 8000
+  port: 8080
 
 spring:
   cloud:
@@ -7,8 +7,14 @@ spring:
       server:
         webflux:
           routes:
+            - id: user-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - StripPrefix=1
             - id: fastapi
-              uri: https://backend.mytruyen.online
+              uri: http://localhost:8000
               predicates:
                 - Path=/api/**
           cors:
