@@ -16,4 +16,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Response<String>> handleRoleNotFoundException(RoleNotFoundException ex) {
         return ResponseEntity.status(404).body(Response.error(404, ex.getMessage()));
     }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<Response<String>> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+        return ResponseEntity.status(400).body(Response.error(400, ex.getMessage()));
+    }
 }

@@ -1,7 +1,26 @@
+server:
+  port: 8082
 spring:
   application:
     name: auth-service
+#  datasource:
+#    url: ${DB_URL}
+#    username: ${DB_USERNAME}
+#    password: ${DB_PASSWORD}
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  algorithm: ${JWT_ALGORITHM}
+  expiration: ${JWT_EXPIRATION}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
 
 user:
   service:
-    url: http://user-service:8080/api/v1/users
+    url: http://localhost:8081/

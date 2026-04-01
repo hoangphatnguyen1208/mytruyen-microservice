@@ -10,4 +10,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface UserClient {
     @GetMapping("internal/users/by-username/{username}")
     Response<UserInternal> getUserByUsername(@PathVariable String username);
+
+    @GetMapping("internal/users/by-id/{id}")
+    Response<UserInternal> getUserById(@PathVariable String id);
+
+    @GetMapping("/internal/users/by-email/{email}")
+    Response<UserInternal> getUserByEmail(@PathVariable String email);
 }

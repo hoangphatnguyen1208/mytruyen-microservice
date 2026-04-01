@@ -7,11 +7,13 @@ import online.mytruyen.userservice.common.Pagination;
 import online.mytruyen.userservice.common.Response;
 import online.mytruyen.userservice.dto.UserCreate;
 import online.mytruyen.userservice.dto.UserPublic;
+import online.mytruyen.userservice.dto.UserRegister;
 import online.mytruyen.userservice.dto.UserUpdate;
 import online.mytruyen.userservice.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<PageResponse<List<UserPublic>>> getUsers(Pageable pageable) {
         Page<UserPublic> pageData = userService.getUsers(pageable);
@@ -35,9 +38,17 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<?> create(@RequestBody UserCreate userCreate) {
         UserPublic user = userService.save(userCreate);
+        URI uri = URI.create("/v1/users/" + user.getId());
+        return ResponseEntity.created(uri).body(Response.success(201, user));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody UserRegister userRegister) {
+        UserPublic user = userService.save(userRegister);
         URI uri = URI.create("/v1/users/" + user.getId());
         return ResponseEntity.created(uri).body(Response.success(201, user));
     }

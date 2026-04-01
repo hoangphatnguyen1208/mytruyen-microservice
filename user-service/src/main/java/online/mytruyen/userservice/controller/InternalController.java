@@ -31,4 +31,11 @@ public class InternalController {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return ResponseEntity.ok(Response.success(200, new UserInternal(user)));
     }
+
+    @GetMapping("/by-email/{email}")
+    public ResponseEntity<Response<UserInternal>> getUserByEmail(@PathVariable String email) {
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return ResponseEntity.ok(Response.success(200, new UserInternal(user)));
+    }
 }

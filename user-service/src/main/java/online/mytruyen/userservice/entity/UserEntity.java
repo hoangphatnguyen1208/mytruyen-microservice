@@ -2,13 +2,11 @@ package online.mytruyen.userservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -40,6 +38,7 @@ public class UserEntity {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<RoleEntity> roles = new ArrayList<>();
 
     @CreationTimestamp

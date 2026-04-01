@@ -1,4 +1,4 @@
-package online.mytruyen.authservice.dto;
+package online.mytruyen.userservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,10 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class Token {
-    private String access_token;
-    private String token_type;
+public class UserRegister {
+    private String email;
+    private String password;
 }
