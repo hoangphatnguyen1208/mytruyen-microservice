@@ -6,7 +6,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import online.mytruyen.authservice.security.JwtConfig;
-import online.mytruyen.authservice.security.JwtConfig;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;

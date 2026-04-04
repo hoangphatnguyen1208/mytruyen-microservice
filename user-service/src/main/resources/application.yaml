@@ -1,21 +1,21 @@
 server:
-    port: 8081
+    port: ${PORT:8082}
 spring:
   application:
     name: user-service
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://dpg-d6u2ho7fte5s73853i30-a.singapore-postgres.render.com/user_db_0u69}
+    username: ${DB_USERNAME:user_db_0u69_user}
+    password: ${DB_PASSWORD:RVTofVqUnWySs2AFdH21Xu0UXJYAZ4a4}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
 
 jwt:
-  secret: ${JWT_SECRET}
-  algorithm: ${JWT_ALGORITHM}
-  expiration: ${JWT_EXPIRATION}
+  secret: ${JWT_SECRET:vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=}
+  algorithm: ${JWT_ALGORITHM:HS256}
+  expiration: ${JWT_EXPIRATION:8640000000}
 
 logging:
   level:

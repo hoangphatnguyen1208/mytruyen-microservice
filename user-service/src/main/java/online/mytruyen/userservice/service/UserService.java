@@ -8,6 +8,7 @@ import online.mytruyen.userservice.dto.UserUpdate;
 import online.mytruyen.userservice.entity.RoleEntity;
 import online.mytruyen.userservice.entity.UserEntity;
 import online.mytruyen.userservice.exception.UserAlreadyExistsException;
+import online.mytruyen.userservice.exception.UserNotFoundException;
 import online.mytruyen.userservice.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,13 +33,13 @@ public class UserService {
 
     public UserPublic getUserByUsername(String username) {
         UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         return new UserPublic(user);
     }
 
     public UserPublic getUserById(String id) {
         UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         return new UserPublic(user);
     }
 
@@ -80,12 +81,10 @@ public class UserService {
     }
 
     public UserPublic updateMe(UserUpdate userUpdate, UserDetails userDetails) {
-        UserEntity user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        UserEntity user = userRepository.findById(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        if (user.getFull_name() != null) {
-            user.setFull_name(userUpdate.getFull_name());
-        }
+        user.setFull_name(userUpdate.getFull_name());
 
         if (userRepository.findByUsername(userUpdate.getUsername()).isEmpty()) {
             user.setUsername(userUpdate.getUsername());
@@ -96,8 +95,8 @@ public class UserService {
     }
 
     public void deleteMe(UserDetails userDetails) {
-        UserEntity user = userRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        UserEntity user = userRepository.findById(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         userRepository.delete(user);
     }
 }

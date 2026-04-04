@@ -7,14 +7,16 @@ spring:
       server:
         webflux:
           routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/auth/**
             - id: user-service
-              uri: http://localhost:8081
+              uri: ${USER_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/api/v1/users/**
-              filters:
-                - StripPrefix=1
             - id: fastapi
-              uri: http://localhost:8000
+              uri: ${FASTAPI_URI:http://localhost:8000}
               predicates:
                 - Path=/api/**
           cors:
@@ -35,3 +37,8 @@ management:
     web:
       exposure:
         include: "*"
+
+jwt:
+    secret: ${JWT_SECRET:vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=}
+    algorithm: ${JWT_ALGORITHM:HS256}
+    expiration: ${JWT_EXPIRATION:8640000000}

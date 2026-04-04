@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import online.mytruyen.authservice.client.UserClient;
 import online.mytruyen.authservice.dto.UserInternal;
 import online.mytruyen.authservice.dto.UserLogin;
+import online.mytruyen.authservice.exception.UnauthorizedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +19,9 @@ public class AuthService {
         UserInternal user =  userClient.getUserByEmail(userLogin.getEmail()).getData();
 
         if (user == null || !passwordEncoder.matches(userLogin.getPassword(), user.getHashedPassword())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new UnauthorizedException("Invalid username or password");
         }
 
-        return jwtService.generateToken(user.getUsername(), user.getRoles());
+        return jwtService.generateToken(user.getId(), user.getRoles());
     }
 }

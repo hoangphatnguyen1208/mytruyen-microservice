@@ -2,7 +2,10 @@ package online.mytruyen.mytruyengateway;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.validation.Valid;
 import org.jspecify.annotations.NullMarked;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -14,6 +17,8 @@ import reactor.core.publisher.Mono;
 //@Component
 @NullMarked
 public class JwtAuthFilter implements GlobalFilter, Ordered {
+    @Value("${jwt.secret}")
+    private String secret;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -25,7 +30,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         }
         String token = authHeader.substring(7);
         try {
-            Jwts.parserBuilder().setSigningKey("mytruyen_secret_key").build().parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(Keys.hmacShaKeyFor(secret.getBytes())).build().parseClaimsJws(token);
         } catch (Exception e) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();

@@ -23,7 +23,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/v1/users")
+@RequestMapping("/api/v1/users")
 @AllArgsConstructor
 public class UserController {
     private final UserService userService;
@@ -63,7 +63,7 @@ public class UserController {
     @GetMapping("/me")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Response<UserPublic>> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        UserPublic user = userService.getUserByUsername(userDetails.getUsername());
+        UserPublic user = userService.getUserById(userDetails.getUsername());
         return ResponseEntity.ok(Response.success(200, user));
     }
 

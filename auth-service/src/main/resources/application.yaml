@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: ${PORT:8081}
 spring:
   application:
     name: auth-service
@@ -13,9 +13,9 @@ spring:
 #    show-sql: true
 
 jwt:
-  secret: ${JWT_SECRET}
-  algorithm: ${JWT_ALGORITHM}
-  expiration: ${JWT_EXPIRATION}
+  secret: ${JWT_SECRET:vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=}
+  algorithm: ${JWT_ALGORITHM:HS256}
+  expiration: ${JWT_EXPIRATION:360000000}
 
 logging:
   level:
@@ -23,4 +23,4 @@ logging:
 
 user:
   service:
-    url: http://localhost:8081/
+    url: ${USER_SERVICE_URL:http://localhost:8082}

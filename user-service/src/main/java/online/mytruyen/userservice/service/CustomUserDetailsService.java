@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
         return User.builder()
-                .username(user.getUsername())
+                .username(user.getId())
                 .password(user.getHashed_password())
                 .authorities(user.getRoles().stream().map(RoleEntity::getName).toArray(String[]::new))
                 .build();
