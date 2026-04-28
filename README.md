@@ -83,6 +83,9 @@ Developer notes
 Contact
 - Open an issue in this repository for bugs or feature requests.
 
+Monolithic version
+- This repository is the microservice refactor of the original MyTruyen backend. The monolithic project is available at: https://github.com/hoangphatnguyen1208/mytruyen-be
+
 ---
 
 This README provides essential instructions to get started. Would you like me to add a sample `docker-compose.yml` or an API reference section next?
