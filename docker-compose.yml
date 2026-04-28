@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - book-service
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8082:8080"
+    environment:
+      - DATABASE_URL=${USER_DATABASE_URL}
+    depends_on:
+      - auth-service
+
+  mytruyen-gateway:
+    build: ./mytruyen-gateway
+    container_name: mytruyen-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_URL=http://auth-service:8080
+      - USER_URL=http://user-service:8080
+      - BOOK_URL=http://book-service:8000
+    depends_on:
+      - auth-service
+      - user-service
+      - book-service
+
+  book-service:
+    build: ./book-service
+    container_name: book-service
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${BOOK_DATABASE_URL}
+
+# Notes:
+# - Customize environment variables in a .env file at the repo root, e.g. AUTH_DATABASE_URL, BOOK_DATABASE_URL, JWT_SECRET
+# - The Java services expect to run on container port 8080; the gateway is exposed on host 8080.
