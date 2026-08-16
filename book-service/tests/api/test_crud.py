@@ -5,10 +5,8 @@ import pytest
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.crud import book as book_crud
 from app.crud import genre as genre_crud
-from app.schema.auth import UserRegister
 from app.schema.book import BookCreate
 from app.schema.genre import GenreCreate
-from app.models import user_role
 import uuid
 
 class TestBookCRUD:
@@ -34,7 +32,8 @@ class TestBookCRUD:
                         "poster_150": "http://example.com/poster_150.jpg"
                     },
                     note="Test note", 
-                    genre_ids=[1] 
+                    genre_ids=[1],
+                    tag_ids=[]
         )
         book = await book_crud.create_book(db_session, book_in)
         assert book.name == "CRUD Test Book"

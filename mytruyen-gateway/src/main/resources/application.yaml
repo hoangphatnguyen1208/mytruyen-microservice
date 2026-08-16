@@ -38,7 +38,3 @@ management:
       exposure:
         include: "*"
 
-jwt:
-    secret: ${JWT_SECRET:vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=}
-    algorithm: ${JWT_ALGORITHM:HS256}
-    expiration: ${JWT_EXPIRATION:8640000000}

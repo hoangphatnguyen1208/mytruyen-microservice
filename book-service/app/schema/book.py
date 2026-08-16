@@ -1,11 +1,13 @@
 from sqlmodel import SQLModel, Field
 from pydantic import ConfigDict
-from app.schema.user import UserPublic
+from app.schema.tag import TagPublic
 from app.schema.genre import GenrePublic
 from app.schema.author import AuthorPublic
+from app.schema.book_status import BookStatusPublic
 
 from datetime import datetime
 import uuid
+
 
 class BookBase(SQLModel):
     name: str
@@ -20,18 +22,22 @@ class BookBase(SQLModel):
     poster: dict
     chapter_count: int = 0
     word_count: int = 0
-    
+
+
 class BookRegister(BookBase):
     id: int | None = None
     author_id: uuid.UUID | None = None
     genre_ids: list[int]
     tag_ids: list[int]
 
+
 class BookCreate(BookBase):
     id: int | None = None
     author_id: uuid.UUID | None = None
     creator_id: uuid.UUID
     genre_ids: list[int]
+    tag_ids: list[int]
+
 
 class BookPublic(BookBase):
     id: int
@@ -47,10 +53,13 @@ class BookPublic(BookBase):
     created_at: datetime
     updated_at: datetime
     published_at: datetime | None
-    
+
     author: AuthorPublic | None
-    creator: UserPublic
-    genres: list[GenrePublic] 
+    creator_id: uuid.UUID
+    status: BookStatusPublic
+    genres: list[GenrePublic]
+    tags: list[TagPublic]
+
 
 class BookUpdate(SQLModel):
     name: str | None = None
@@ -72,6 +81,3 @@ class BookUpdate(SQLModel):
     review_count: int | None = None
     average_rating: float | None = None
     bookmark_count: int | None = None
-
-
-

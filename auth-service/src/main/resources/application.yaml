@@ -3,19 +3,10 @@ server:
 spring:
   application:
     name: auth-service
-#  datasource:
-#    url: ${DB_URL}
-#    username: ${DB_USERNAME}
-#    password: ${DB_PASSWORD}
-#  jpa:
-#    hibernate:
-#      ddl-auto: update
-#    show-sql: true
-
 jwt:
-  secret: ${JWT_SECRET:vLs5M1qfI62y7Q00LBuHNHpELYqau7lBVjt9yQlz5tM=}
+  secret: ${JWT_SECRET}
   algorithm: ${JWT_ALGORITHM:HS256}
-  expiration: ${JWT_EXPIRATION:360000000}
+  expiration: ${JWT_EXPIRATION:3600000}
 
 logging:
   level:

@@ -1,10 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_ignore_empty=True,
-        extra="ignore"
+        env_file=".env", env_ignore_empty=True, extra="ignore"
     )
     PROJECT_NAME: str
 
@@ -17,10 +16,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_URL: str
     POSTGRES_SYNC_URL: str
+    POOL_SIZE: int
+    MAX_OVERFLOW: int
 
-    ACCESS_TOKEN_EXPIRE_MINUTES: int 
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-    JWT_SECRET_KEY: str 
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str
 
     FIRST_ADMIN_EMAIL: str
@@ -31,5 +32,12 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
 
     PINECONE_API_KEY: str
+
+    MEILI_URL: str
+    MEILI_MASTER_KEY: str
+
+    RABBITMQ_URL: str
+    RABBITMQ_QUEUE_CRAWL: str
+
 
 settings = Settings()

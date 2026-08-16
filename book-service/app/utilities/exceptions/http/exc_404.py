@@ -81,4 +81,4 @@ def http_exc_404_status_not_found_request(string: str):
     raise HTTPException(
         status_code=fastapi.status.HTTP_404_NOT_FOUND,
         detail=http_404_status_details(string=string),
-    )   
+    )
