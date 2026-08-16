@@ -80,6 +80,8 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: HS256
       JWT_EXPIRATION: ${JWT_EXPIRATION_MS:-3600000}
+      JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
     depends_on:
       - user-service
 
@@ -131,6 +133,9 @@ services:
       AUTH_SERVICE_URI: http://auth-service:8081
       USER_SERVICE_URI: http://user-service:8082
       BOOK_SERVICE_URI: http://book-service:8000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
     depends_on:
       - auth-service
       - user-service
