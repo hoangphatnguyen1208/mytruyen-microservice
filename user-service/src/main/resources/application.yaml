@@ -20,3 +20,8 @@ jwt:
 logging:
   level:
     org.springframework.security: DEBUG
+
+app:
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}

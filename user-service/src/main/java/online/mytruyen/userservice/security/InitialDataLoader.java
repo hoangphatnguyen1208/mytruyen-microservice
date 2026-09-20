@@ -8,6 +8,7 @@ import online.mytruyen.userservice.exception.RoleNotFoundException;
 import online.mytruyen.userservice.repository.RoleRepository;
 import online.mytruyen.userservice.repository.UserRepository;
 import org.jspecify.annotations.NonNull;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.boot.CommandLineRunner;
@@ -22,6 +23,12 @@ public class InitialDataLoader implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.admin.username}")
+    private String username;
+
+    @Value("${app.admin.password}")
+    private String password;
+
     @Override
     public void run(String @NonNull ... args) {
         if (roleRepository.count() == 0) {
@@ -35,12 +42,12 @@ public class InitialDataLoader implements CommandLineRunner {
                     .orElseThrow(() -> new RoleNotFoundException("Role not found with name: ROLE_ADMIN"));
 
             UserEntity admin = new UserEntity();
-            admin.setUsername("admin");
-            admin.setHashed_password(passwordEncoder.encode("admin123"));
+            admin.setUsername(username);
+            admin.setHashed_password(passwordEncoder.encode(password));
             admin.setRoles(List.of(adminRole));
 
             userRepository.save(admin);
-            log.info(">>> Created default admin: admin/admin123");
+            log.info(">>> Created default admin successfully");
         }
     }
 }
