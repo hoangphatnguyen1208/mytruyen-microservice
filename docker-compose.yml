@@ -147,6 +147,7 @@ services:
       JWT_ALGORITHM: RS256
       JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
     depends_on:
       - auth-service
       - user-service

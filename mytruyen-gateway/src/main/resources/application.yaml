@@ -19,24 +19,39 @@ spring:
               uri: ${BOOK_SERVICE_URI:http://localhost:8000}
               predicates:
                 - Path=/api/**
-          cors:
-            allowed-origins: "*"
-            allowed-methods: "*"
-eureka:
-  client:
-    enabled: false
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origins:
+                  - ${FRONTEND_ORIGIN:http://localhost:3000}
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowed-headers:
+                  - Authorization
+                  - Content-Type
+                allow-credentials: true
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.web.reactive.function.client: DEBUG
-    reactor.netty.http.client: DEBUG
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web.reactive.function.client: INFO
+    reactor.netty.http.client: INFO
 
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
 
 jwt:
   public-key: ${JWT_PUBLIC_KEY_BASE64}
