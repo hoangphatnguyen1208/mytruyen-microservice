@@ -1,135 +1,71 @@
 # MyTruyen Microservices
 
-A collection of microservices for the MyTruyen story-reading platform. The repository contains Java (Gradle) services and a Python service (FastAPI).
+This repository is being migrated from `mytruyen-be` with a strangler-style, service-by-service rollout. The detailed roadmap is in [MIGRATION_PLAN.md](MIGRATION_PLAN.md).
 
-Purpose: provide a working microservice reference architecture for account management, book/chapter management, and an API gateway.
+## Target services
 
-Services included
-- **auth-service** — authentication service (Java, Spring Boot, Gradle)
-- **user-service** — user management service (Java, Spring Boot, Gradle)
-- **mytruyen-gateway** — API gateway and central configuration (Java, Gradle)
-- **book-service** — book and chapter service (Python, FastAPI, pyproject.toml)
+| Directory | Runtime | Responsibility | Current phase |
+|---|---|---|---|
+| `mytruyen-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
+| `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Walking skeleton |
+| `catalog-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | Walking skeleton |
+| `search-service` | Python 3.12 / FastAPI | Search API and search projections | Walking skeleton |
+| `ingestion-worker` | Python 3.12 | Crawl/import commands and data normalization | Walking skeleton |
+| `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 
-Overview
-- Each service runs independently and communicates over HTTP/REST.
-- The gateway aggregates endpoints and handles routing and basic security configuration.
+`auth-service` and `user-service` are legacy transition sources. They are intentionally not included in the default Compose topology. Their behavior will be moved into `identity-service`, tested for parity, and only then removed.
 
-Prerequisites
-- Java 11+ (or the version required by the services)
-- Gradle (or use the included `gradlew` / `gradlew.bat` wrappers)
-- Python 3.8+
-- Docker (optional, for containerized runs)
+## Infrastructure
 
-Quick start
+- One PostgreSQL database per stateful domain service.
+- RabbitMQ for integration events and ingestion commands.
+- Meilisearch for the search projection.
+- Redis is reserved for cache/rate limiting; it is not a second crawl queue.
+- Flyway owns Java service schema changes. Hibernate runs with `ddl-auto: validate`.
 
-Run Java services locally (Linux/macOS):
+## Run locally
 
-```bash
-cd auth-service
-./gradlew bootRun
-
-cd ../user-service
-./gradlew bootRun
-
-cd ../mytruyen-gateway
-./gradlew bootRun
-```
-
-On Windows use `gradlew.bat`:
-
-```powershell
-cd auth-service
-.\gradlew.bat bootRun
-```
-
-Run the Python service (`book-service`)
-
-Using Poetry (if available):
-
-```bash
-cd book-service
-poetry install
-poetry run python -m app.main
-```
-
-Using virtualenv + pip:
-
-```bash
-cd book-service
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt  # or `pip install .` if packaged
-python -m app.main
-```
-
-Configuration and environment variables
-- Services require database configuration and an RSA JWT key pair. Only `auth-service` receives the private key; the gateway, user service, and book service receive only the public key. Check each service's `application.yaml` or Python settings for the full list.
-
-Docker and deployment
-- Some services include Dockerfile(s) and may include a `docker-compose.yml` at the service level. Build images per service and orchestrate with your preferred tooling.
-
-Testing
-- `book-service` contains `pytest` tests (see `pytest.ini` and `tests/`).
-- Java services use Gradle tests: `./gradlew test`.
-
-Contributing
-- Fork the repository and create a branch named `feature/<description>`.
-- Open a Pull Request with a clear description and reproduction steps if applicable.
-
-Developer notes
-- Gateway configuration: mytruyen-gateway/src/main/resources/application.yaml
-- Python application code: book-service/app
-
-Contact
-- Open an issue in this repository for bugs or feature requests.
-
-Monolithic version
-- This repository is the microservice refactor of the original MyTruyen backend. The monolithic project is available at: https://github.com/hoangphatnguyen1208/mytruyen-be
-
----
-
-This README provides essential instructions to get started. Would you like me to add a sample `docker-compose.yml` or an API reference section next?
-
-Docker Compose
--
-You can build and run all services together using the top-level `docker-compose.yml` added to the repository root.
-
-Build images and start services:
-
-```bash
-cd <repo-root>
-docker compose build
-docker compose up
-```
-
-Run in detached mode:
-
-```bash
-docker compose up -d --build
-```
-
-Environment variables
-- Place runtime secrets and connection strings in a `.env` file at the repository root. Example `.env`:
-
-Generate a local RSA key pair on Windows/PowerShell, then copy the generated values into `.env`:
+Generate local JWT keys, then create the environment file:
 
 ```powershell
 .\scripts\generate-jwt-keys.ps1
-Get-Content .env.jwt.local
+Copy-Item .env.example .env
 ```
 
-`.env.jwt.local` is ignored by Git. In deployed environments, store the private key in a secret manager and expose it only to `auth-service`.
+Copy the generated key values from `.env.jwt.local` into `.env`, set non-default passwords, then run:
 
-```
-AUTH_DATABASE_URL=postgresql://user:pass@db:5432/authdb
-USER_DATABASE_URL=postgresql://user:pass@db:5432/userdb
-BOOK_DATABASE_URL=postgresql://user:pass@db:5432/bookdb
-JWT_PRIVATE_KEY_BASE64=replace_with_a_base64_pkcs8_private_key
-JWT_PUBLIC_KEY_BASE64=replace_with_a_base64_x509_public_key
-JWT_ALGORITHM=RS256
+```powershell
+docker compose up --build
 ```
 
-Notes
-- The Java services are built with Gradle inside the Docker build and expose container port `8080`.
-- `book-service` exposes container port `8000` (FastAPI).
-- Adjust ports and environment variables in `docker-compose.yml` as needed for your deployment.
+The public Gateway listens on `http://localhost:8080`. RabbitMQ management is available on `http://localhost:15672` for local development.
+
+## Build and test
+
+Java services:
+
+```powershell
+.\identity-service\gradlew.bat -p identity-service build
+.\catalog-service\gradlew.bat -p catalog-service build
+.\engagement-service\gradlew.bat -p engagement-service build
+.\mytruyen-gateway\gradlew.bat -p mytruyen-gateway test
+```
+
+Python services:
+
+```powershell
+Push-Location search-service; uv run pytest; Pop-Location
+Push-Location ingestion-worker; uv run pytest; Pop-Location
+```
+
+## Migration phases
+
+1. Walking skeleton and deployable topology (current).
+2. Merge Auth/User behavior and data into Identity.
+3. Implement Catalog schema/API and migrate book/chapter data.
+4. Build event outbox and Search projection.
+5. Move crawler into Ingestion Worker.
+6. Implement Engagement only when its product APIs are scheduled.
+7. Canary cutover and archive the monolith/legacy services.
+
+Each phase must keep the repository buildable and requires its own tests before the next phase starts.
