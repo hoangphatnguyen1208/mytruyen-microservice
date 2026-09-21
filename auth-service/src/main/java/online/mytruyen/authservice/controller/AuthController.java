@@ -1,5 +1,6 @@
 package online.mytruyen.authservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import online.mytruyen.authservice.common.Response;
 import online.mytruyen.authservice.dto.Token;
@@ -14,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
-
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -23,15 +22,15 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<Response<Token>> login(@RequestBody UserLogin userLogin) {
+    public ResponseEntity<Response<Token>> login(@Valid @RequestBody UserLogin userLogin) {
         return ResponseEntity.ok(
                 Response.success(200, new Token(authService.login(userLogin), "bearer"))
         );
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Response<UserPublic>> register(@RequestBody UserRegister userRegister) {
+    public ResponseEntity<Response<UserPublic>> register(@Valid @RequestBody UserRegister userRegister) {
         UserPublic user = authService.register(userRegister);
-        return ResponseEntity.ok(Response.success(201, user));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.success(201, user));
     }
 }

@@ -10,6 +10,8 @@ import online.mytruyen.authservice.exception.UnauthorizedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -18,7 +20,8 @@ public class AuthService {
     private final JwtService jwtService;
 
     public String login(UserLogin userLogin) {
-        UserInternal user =  userClient.getUserByEmail(userLogin.getEmail()).getData();
+        String normalizedEmail = userLogin.getEmail().trim().toLowerCase(Locale.ROOT);
+        UserInternal user = userClient.getUserByEmail(normalizedEmail).getData();
 
         if (user == null || !passwordEncoder.matches(userLogin.getPassword(), user.getHashedPassword())) {
             throw new UnauthorizedException("Invalid username or password");
