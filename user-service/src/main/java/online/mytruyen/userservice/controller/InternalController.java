@@ -1,5 +1,6 @@
 package online.mytruyen.userservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import online.mytruyen.userservice.common.Response;
 import online.mytruyen.userservice.dto.UserInternal;
@@ -36,13 +37,13 @@ public class InternalController {
 
     @GetMapping("/by-email/{email}")
     public ResponseEntity<Response<UserInternal>> getUserByEmail(@PathVariable String email) {
-        UserEntity user = userRepository.findByEmail(email)
+        UserEntity user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return ResponseEntity.ok(Response.success(200, new UserInternal(user)));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Response<UserPublic>> register(@RequestBody UserRegister userRegister) {
+    public ResponseEntity<Response<UserPublic>> register(@Valid @RequestBody UserRegister userRegister) {
         UserPublic user = userService.save(userRegister);
         return ResponseEntity.status(HttpStatus.CREATED).body(Response.success(201, user));
     }

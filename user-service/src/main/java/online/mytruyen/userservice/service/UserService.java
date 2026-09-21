@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @AllArgsConstructor
@@ -44,7 +45,8 @@ public class UserService {
     }
 
     public UserPublic save(UserCreate userCreate) {
-        if (userRepository.existsByEmail(userCreate.getEmail())) {
+        String email = normalizeEmail(userCreate.getEmail());
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new UserAlreadyExistsException("Email already exists");
         }
 
@@ -55,9 +57,10 @@ public class UserService {
         List<RoleEntity> roles = userCreate.getRoles().stream().map(roleService::getRoleById).toList();
 
         UserEntity user = new UserEntity();
-        user.setEmail(userCreate.getEmail());
-        user.setUsername(userCreate.getUsername());
+        user.setEmail(email);
+        user.setUsername(userCreate.getUsername().trim());
         user.setHashed_password(passwordEncoder.encode(userCreate.getPassword()));
+        user.setIs_active(true);
         user.setRoles(roles);
 
         UserEntity userDb = userRepository.save(user);
@@ -65,15 +68,23 @@ public class UserService {
     }
 
     public UserPublic save(UserRegister userRegister) {
-        if (userRepository.existsByEmail(userRegister.getEmail())) {
+        String email = normalizeEmail(userRegister.getEmail());
+        String username = userRegister.getUsername().trim();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new UserAlreadyExistsException("Email already exists");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            throw new UserAlreadyExistsException("Username already exists");
         }
 
         RoleEntity roleUser = roleService.getRoleByName("ROLE_USER");
 
         UserEntity user = new UserEntity();
-        user.setEmail(userRegister.getEmail());
+        user.setEmail(email);
+        user.setUsername(username);
         user.setHashed_password(passwordEncoder.encode(userRegister.getPassword()));
+        user.setIs_active(true);
         user.setRoles(List.of(roleUser));
 
         UserEntity userDb = userRepository.save(user);
@@ -84,10 +95,16 @@ public class UserService {
         UserEntity user = userRepository.findById(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        user.setFull_name(userUpdate.getFull_name());
+        if (userUpdate.getFull_name() != null) {
+            user.setFull_name(userUpdate.getFull_name().trim());
+        }
 
-        if (userRepository.findByUsername(userUpdate.getUsername()).isEmpty()) {
-            user.setUsername(userUpdate.getUsername());
+        if (userUpdate.getUsername() != null) {
+            String username = userUpdate.getUsername().trim();
+            if (!username.equals(user.getUsername()) && userRepository.existsByUsername(username)) {
+                throw new UserAlreadyExistsException("Username already exists");
+            }
+            user.setUsername(username);
         }
 
         UserEntity user_updated = userRepository.save(user);
@@ -98,5 +115,9 @@ public class UserService {
         UserEntity user = userRepository.findById(userDetails.getUsername())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         userRepository.delete(user);
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

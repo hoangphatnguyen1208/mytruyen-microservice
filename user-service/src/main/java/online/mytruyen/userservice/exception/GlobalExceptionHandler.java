@@ -2,6 +2,7 @@ package online.mytruyen.userservice.exception;
 
 import online.mytruyen.userservice.common.Response;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -19,6 +20,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<Response<String>> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
-        return ResponseEntity.status(400).body(Response.error(400, ex.getMessage()));
+        return ResponseEntity.status(409).body(Response.error(409, ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Response<String>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .orElse("Invalid request");
+        return ResponseEntity.badRequest().body(Response.error(400, message));
     }
 }

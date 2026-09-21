@@ -1,5 +1,6 @@
 package online.mytruyen.userservice.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +39,11 @@ public class JwtFilter extends OncePerRequestFilter {
         String id = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
-            id = jwtService.extractId(jwt);
+            try {
+                id = jwtService.extractId(jwt);
+            } catch (JwtException | IllegalArgumentException ignored) {
+                SecurityContextHolder.clearContext();
+            }
         }
         if (id != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 

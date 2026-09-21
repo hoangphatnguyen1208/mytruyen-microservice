@@ -24,6 +24,8 @@ logging:
 
 app:
   admin:
-    username: ${ADMIN_USERNAME:}
-    password: ${ADMIN_PASSWORD:}
+    enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
+    email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    username: ${BOOTSTRAP_ADMIN_USERNAME:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
   internal-api-key: ${INTERNAL_API_KEY}

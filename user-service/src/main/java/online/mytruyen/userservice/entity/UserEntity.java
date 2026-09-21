@@ -20,15 +20,18 @@ public class UserEntity {
     @UuidGenerator
     private String id;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true, length = 254)
     private String email;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @Column(nullable = false)
     private String hashed_password;
 
-    private Boolean is_active;
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean is_active = true;
 
     private String full_name;
 
@@ -39,6 +42,7 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @Builder.Default
     private List<RoleEntity> roles = new ArrayList<>();
 
     @CreationTimestamp

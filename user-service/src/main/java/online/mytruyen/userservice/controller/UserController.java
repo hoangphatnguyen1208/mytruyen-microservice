@@ -1,13 +1,13 @@
 package online.mytruyen.userservice.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import online.mytruyen.userservice.common.PageResponse;
 import online.mytruyen.userservice.common.Pagination;
 import online.mytruyen.userservice.common.Response;
 import online.mytruyen.userservice.dto.UserCreate;
 import online.mytruyen.userservice.dto.UserPublic;
-import online.mytruyen.userservice.dto.UserRegister;
 import online.mytruyen.userservice.dto.UserUpdate;
 import online.mytruyen.userservice.service.UserService;
 import org.springframework.data.domain.Page;
@@ -40,7 +40,7 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<Response<UserPublic>> create(@RequestBody UserCreate userCreate) {
+    public ResponseEntity<Response<UserPublic>> create(@Valid @RequestBody UserCreate userCreate) {
         UserPublic user = userService.save(userCreate);
         URI uri = URI.create("/v1/users/" + user.getId());
         return ResponseEntity.created(uri).body(Response.success(201, user));
@@ -71,7 +71,7 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<Response<UserPublic>> updateCurrentUser(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody UserUpdate userUpdate
+            @Valid @RequestBody UserUpdate userUpdate
     ) {
         UserPublic user = userService.updateMe(userUpdate, userDetails);
         return ResponseEntity.ok(Response.success(200, user));

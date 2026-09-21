@@ -25,6 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return User.builder()
                 .username(user.getId())
                 .password(user.getHashed_password())
+                .disabled(Boolean.FALSE.equals(user.getIs_active()))
                 .authorities(user.getRoles().stream().map(RoleEntity::getName).toArray(String[]::new))
                 .build();
     }
