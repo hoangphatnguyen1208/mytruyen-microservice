@@ -1,14 +1,18 @@
 package online.mytruyen.authservice.service;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import online.mytruyen.authservice.security.JwtConfig;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 @Service
@@ -17,12 +21,16 @@ public class JwtService {
     private final JwtConfig jwtConfig;
 
     private Claims extractAllClaims(String token) {
-        Key key = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes());
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+        Jws<Claims> parsed = Jwts.parserBuilder()
+                .setSigningKey(readPublicKey())
+                .requireIssuer(jwtConfig.getIssuer())
+                .requireAudience(jwtConfig.getAudience())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseClaimsJws(token);
+        if (!jwtConfig.getAlgorithm().equals(parsed.getHeader().getAlgorithm())) {
+            throw new JwtException("Unexpected JWT algorithm");
+        }
+        return parsed.getBody();
     }
 
     public String extractId(String token) {
@@ -51,7 +59,31 @@ public class JwtService {
                 .setId(UUID.randomUUID().toString())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-                .signWith(Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes()), SignatureAlgorithm.HS256)
+                .signWith(readPrivateKey())
                 .compact();
+    }
+
+    private PrivateKey readPrivateKey() {
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(normalize(jwtConfig.getPrivateKey()));
+            return KeyFactory.getInstance("RSA")
+                    .generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Invalid JWT private key", exception);
+        }
+    }
+
+    private PublicKey readPublicKey() {
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(normalize(jwtConfig.getPublicKey()));
+            return KeyFactory.getInstance("RSA")
+                    .generatePublic(new X509EncodedKeySpec(keyBytes));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Invalid JWT public key", exception);
+        }
+    }
+
+    private String normalize(String key) {
+        return key.replaceAll("\\s", "");
     }
 }

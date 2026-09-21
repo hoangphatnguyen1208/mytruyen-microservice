@@ -2,7 +2,6 @@ package online.mytruyen.mytruyengateway.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -14,7 +13,9 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,13 +23,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JwtAuthenticationFilterTests {
-    private static final String SECRET = "01234567890123456789012345678901";
     private JwtAuthenticationFilter filter;
+    private KeyPair keyPair;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        keyPair = generator.generateKeyPair();
         JwtProperties properties = new JwtProperties();
-        properties.setSecret(SECRET);
+        properties.setPublicKey(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+        properties.setAlgorithm("RS256");
         properties.setIssuer("mytruyen-auth");
         properties.setAudience("mytruyen-api");
         filter = new JwtAuthenticationFilter(properties);
@@ -54,7 +59,7 @@ class JwtAuthenticationFilterTests {
                 .claim("roles", List.of("ROLE_ADMIN"))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 60_000))
-                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .signWith(keyPair.getPrivate(), SignatureAlgorithm.RS256)
                 .compact();
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/books")

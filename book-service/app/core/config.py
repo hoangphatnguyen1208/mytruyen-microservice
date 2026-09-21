@@ -21,8 +21,10 @@ class Settings(BaseSettings):
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-    JWT_SECRET_KEY: str
+    JWT_PUBLIC_KEY_BASE64: str
     JWT_ALGORITHM: str
+    JWT_ISSUER: str
+    JWT_AUDIENCE: str
 
     FIRST_ADMIN_EMAIL: str
     FIRST_ADMIN_PASSWORD: str

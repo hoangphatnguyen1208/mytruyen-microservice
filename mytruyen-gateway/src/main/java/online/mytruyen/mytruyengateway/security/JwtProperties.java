@@ -6,16 +6,25 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
-    private String secret;
+    private String publicKey;
+    private String algorithm;
     private String issuer;
     private String audience;
 
-    public String getSecret() {
-        return secret;
+    public String getPublicKey() {
+        return publicKey;
     }
 
-    public void setSecret(String secret) {
-        this.secret = secret;
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    public String getAlgorithm() {
+        return algorithm;
+    }
+
+    public void setAlgorithm(String algorithm) {
+        this.algorithm = algorithm;
     }
 
     public String getIssuer() {

@@ -1,28 +1,26 @@
 import uuid
 import jwt
+import base64
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 from passlib.context import CryptContext
-
-from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def create_access_token(data: dict, expires_delta: timedelta) -> str:
-    expires = datetime.now(timezone.utc) + expires_delta
-    to_encode = data.copy()
-    to_encode.update({"exp": expires})
-    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    return encoded_jwt
-
 def decode_token(token: str) -> dict:
     """Decode JWT token và trả về subject (user_id)"""
     try:
+        public_key = load_der_public_key(
+            base64.b64decode(settings.JWT_PUBLIC_KEY_BASE64)
+        )
         payload = jwt.decode(
-            token, 
-            settings.JWT_SECRET_KEY, 
-            algorithms=[settings.JWT_ALGORITHM]
+            token,
+            public_key,
+            algorithms=[settings.JWT_ALGORITHM],
+            issuer=settings.JWT_ISSUER,
+            audience=settings.JWT_AUDIENCE,
+            options={"require": ["exp", "iat", "sub", "iss", "aud"]},
         )
         return payload
     except jwt.ExpiredSignatureError:

@@ -5,6 +5,8 @@ from typing import Annotated, Any, TypeAlias
 from sqlmodel import Field, SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 import uuid
+import base64
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 from httpx import AsyncClient
 from meilisearch import Client as MeiliSearchClient
 
@@ -37,8 +39,16 @@ TokenDep: TypeAlias = Annotated[str, Depends(reusable_oauth2)]
 
 async def get_current_user(token: TokenDep) -> Principal:
     try:
+        public_key = load_der_public_key(
+            base64.b64decode(settings.JWT_PUBLIC_KEY_BASE64)
+        )
         payload = jwt.decode(
-            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+            token,
+            public_key,
+            algorithms=[settings.JWT_ALGORITHM],
+            issuer=settings.JWT_ISSUER,
+            audience=settings.JWT_AUDIENCE,
+            options={"require": ["exp", "iat", "sub", "iss", "aud"]},
         )
         subject = payload.get("sub")
         roles = payload.get("roles", [])

@@ -1,9 +1,9 @@
 package online.mytruyen.mytruyengateway.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -16,7 +16,10 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.List;
 
 @Component
@@ -67,14 +70,27 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Claims parseClaims(String token) {
-        Key key = Keys.hmacShaKeyFor(properties.getSecret().getBytes(StandardCharsets.UTF_8));
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
+        Jws<Claims> parsed = Jwts.parserBuilder()
+                .setSigningKey(readPublicKey())
                 .requireIssuer(properties.getIssuer())
                 .requireAudience(properties.getAudience())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseClaimsJws(token);
+        if (!properties.getAlgorithm().equals(parsed.getHeader().getAlgorithm())) {
+            throw new JwtException("Unexpected JWT algorithm");
+        }
+        return parsed.getBody();
+    }
+
+    private PublicKey readPublicKey() {
+        try {
+            byte[] keyBytes = Base64.getDecoder()
+                    .decode(properties.getPublicKey().replaceAll("\\s", ""));
+            return KeyFactory.getInstance("RSA")
+                    .generatePublic(new X509EncodedKeySpec(keyBytes));
+        } catch (Exception exception) {
+            throw new IllegalStateException("Invalid JWT public key", exception);
+        }
     }
 
     private ServerWebExchange removeIdentityHeaders(ServerWebExchange exchange) {

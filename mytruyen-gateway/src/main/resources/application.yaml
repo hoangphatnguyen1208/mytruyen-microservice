@@ -39,7 +39,8 @@ management:
         include: "*"
 
 jwt:
-  secret: ${JWT_SECRET}
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+  algorithm: ${JWT_ALGORITHM:RS256}
   issuer: ${JWT_ISSUER:mytruyen-auth}
   audience: ${JWT_AUDIENCE:mytruyen-api}
 

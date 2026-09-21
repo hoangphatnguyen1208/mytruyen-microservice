@@ -10,7 +10,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "jwt")
 public class JwtConfig {
-    private String secret;
+    private String privateKey;
+    private String publicKey;
     private String algorithm;
     private Long expiration;
     private String issuer;

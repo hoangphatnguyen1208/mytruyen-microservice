@@ -63,7 +63,7 @@ python -m app.main
 ```
 
 Configuration and environment variables
-- Services typically require configuration for database connections, credentials, and secrets (e.g. JWT_SECRET). Check each service's `src/main/resources/application.yaml` (Java services) and the `book-service/app` configuration for required variables.
+- Services require database configuration and an RSA JWT key pair. Only `auth-service` receives the private key; the gateway, user service, and book service receive only the public key. Check each service's `application.yaml` or Python settings for the full list.
 
 Docker and deployment
 - Some services include Dockerfile(s) and may include a `docker-compose.yml` at the service level. Build images per service and orchestrate with your preferred tooling.
@@ -111,11 +111,22 @@ docker compose up -d --build
 Environment variables
 - Place runtime secrets and connection strings in a `.env` file at the repository root. Example `.env`:
 
+Generate a local RSA key pair on Windows/PowerShell, then copy the generated values into `.env`:
+
+```powershell
+.\scripts\generate-jwt-keys.ps1
+Get-Content .env.jwt.local
+```
+
+`.env.jwt.local` is ignored by Git. In deployed environments, store the private key in a secret manager and expose it only to `auth-service`.
+
 ```
 AUTH_DATABASE_URL=postgresql://user:pass@db:5432/authdb
 USER_DATABASE_URL=postgresql://user:pass@db:5432/userdb
 BOOK_DATABASE_URL=postgresql://user:pass@db:5432/bookdb
-JWT_SECRET=replace_with_a_secure_secret
+JWT_PRIVATE_KEY_BASE64=replace_with_a_base64_pkcs8_private_key
+JWT_PUBLIC_KEY_BASE64=replace_with_a_base64_x509_public_key
+JWT_ALGORITHM=RS256
 ```
 
 Notes
