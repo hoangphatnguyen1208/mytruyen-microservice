@@ -7,18 +7,26 @@ spring:
       server:
         webflux:
           routes:
-            - id: auth-service
-              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+            - id: identity-auth
+              uri: ${IDENTITY_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/api/v1/auth/**
-            - id: user-service
-              uri: ${USER_SERVICE_URI:http://localhost:8082}
+            - id: identity-users
+              uri: ${IDENTITY_SERVICE_URI:http://localhost:8081}
               predicates:
                 - Path=/api/v1/users/**
-            - id: book-service
-              uri: ${BOOK_SERVICE_URI:http://localhost:8000}
+            - id: catalog-service
+              uri: ${CATALOG_SERVICE_URI:http://localhost:8082}
               predicates:
-                - Path=/api/**
+                - Path=/api/v1/books/**,/api/v1/chapters/**,/api/v1/authors/**,/api/v1/genres/**,/api/v1/tags/**,/api/v1/book-statuses/**
+            - id: engagement-service
+              uri: ${ENGAGEMENT_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/comments/**,/api/v1/reviews/**,/api/v1/bookmarks/**,/api/v1/ratings/**
+            - id: search-service
+              uri: ${SEARCH_SERVICE_URI:http://localhost:8000}
+              predicates:
+                - Path=/api/v1/search/**
           globalcors:
             add-to-simple-url-handler-mapping: true
             cors-configurations:

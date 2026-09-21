@@ -1,28 +1,39 @@
 services:
-  book-db:
+  identity-db:
     image: postgres:15
     environment:
-      POSTGRES_DB: ${BOOK_POSTGRES_DB:-mytruyen}
-      POSTGRES_USER: ${BOOK_POSTGRES_USER:-mytruyen}
-      POSTGRES_PASSWORD: ${BOOK_POSTGRES_PASSWORD:?set BOOK_POSTGRES_PASSWORD}
-    volumes:
-      - book-db-data:/var/lib/postgresql/data
+      POSTGRES_DB: ${IDENTITY_POSTGRES_DB:-mytruyen_identity}
+      POSTGRES_USER: ${POSTGRES_USER:-mytruyen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [identity-db-data:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${BOOK_POSTGRES_USER:-mytruyen} -d ${BOOK_POSTGRES_DB:-mytruyen}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mytruyen} -d ${IDENTITY_POSTGRES_DB:-mytruyen_identity}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  user-db:
+  catalog-db:
     image: postgres:15
     environment:
-      POSTGRES_DB: ${USER_POSTGRES_DB:-mytruyen_users}
-      POSTGRES_USER: ${USER_POSTGRES_USER:-mytruyen}
-      POSTGRES_PASSWORD: ${USER_POSTGRES_PASSWORD:?set USER_POSTGRES_PASSWORD}
-    volumes:
-      - user-db-data:/var/lib/postgresql/data
+      POSTGRES_DB: ${CATALOG_POSTGRES_DB:-mytruyen_catalog}
+      POSTGRES_USER: ${POSTGRES_USER:-mytruyen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [catalog-db-data:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${USER_POSTGRES_USER:-mytruyen} -d ${USER_POSTGRES_DB:-mytruyen_users}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mytruyen} -d ${CATALOG_POSTGRES_DB:-mytruyen_catalog}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  engagement-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${ENGAGEMENT_POSTGRES_DB:-mytruyen_engagement}
+      POSTGRES_USER: ${POSTGRES_USER:-mytruyen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [engagement-db-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mytruyen} -d ${ENGAGEMENT_POSTGRES_DB:-mytruyen_engagement}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,119 +53,108 @@ services:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY}
       MEILI_ENV: production
       MEILI_NO_ANALYTICS: "true"
-    volumes:
-      - meili-data:/meili_data
+    volumes: [meili-data:/meili_data]
 
   rabbitmq:
     image: rabbitmq:3-management
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-mytruyen}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?set RABBITMQ_DEFAULT_PASS}
-    ports:
-      - "15672:15672"
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+    ports: ["15672:15672"]
+    volumes: [rabbitmq-data:/var/lib/rabbitmq]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  user-service:
-    build: ./user-service
+  identity-service:
+    build: ./identity-service
     environment:
-      DB_URL: jdbc:postgresql://user-db:5432/${USER_POSTGRES_DB:-mytruyen_users}
-      DB_USERNAME: ${USER_POSTGRES_USER:-mytruyen}
-      DB_PASSWORD: ${USER_POSTGRES_PASSWORD}
-      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
-      JWT_ALGORITHM: RS256
-      JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY}
-      BOOTSTRAP_ADMIN_ENABLED: ${BOOTSTRAP_ADMIN_ENABLED:-false}
-      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
-      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
-      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
-    depends_on:
-      user-db:
-        condition: service_healthy
-
-  auth-service:
-    build: ./auth-service
-    environment:
-      USER_SERVICE_URL: http://user-service:8082
+      DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_POSTGRES_DB:-mytruyen_identity}
+      DB_USERNAME: ${POSTGRES_USER:-mytruyen}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64:?set JWT_PRIVATE_KEY_BASE64}
       JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
-      JWT_ALGORITHM: RS256
-      JWT_EXPIRATION: ${JWT_EXPIRATION_MS:-3600000}
       JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY}
     depends_on:
-      - user-service
-
-  book-service:
-    build: ./book-service
-    command: ["sh", "-c", "alembic upgrade head && fastapi run app/main.py --host 0.0.0.0 --port 8000"]
-    environment:
-      PROJECT_NAME: MyTruyen Book Service
-      API_V1_STR: /api/v1
-      API_V2_STR: /api/v2
-      POSTGRES_SERVER: book-db
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${BOOK_POSTGRES_DB:-mytruyen}
-      POSTGRES_USER: ${BOOK_POSTGRES_USER:-mytruyen}
-      POSTGRES_PASSWORD: ${BOOK_POSTGRES_PASSWORD}
-      POSTGRES_URL: postgresql+asyncpg://${BOOK_POSTGRES_USER:-mytruyen}:${BOOK_POSTGRES_PASSWORD}@book-db:5432/${BOOK_POSTGRES_DB:-mytruyen}
-      POSTGRES_SYNC_URL: postgresql://${BOOK_POSTGRES_USER:-mytruyen}:${BOOK_POSTGRES_PASSWORD}@book-db:5432/${BOOK_POSTGRES_DB:-mytruyen}
-      POOL_SIZE: ${BOOK_DB_POOL_SIZE:-10}
-      MAX_OVERFLOW: ${BOOK_DB_MAX_OVERFLOW:-20}
-      ACCESS_TOKEN_EXPIRE_MINUTES: 60
-      REFRESH_TOKEN_EXPIRE_DAYS: 7
-      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
-      JWT_ALGORITHM: RS256
-      JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
-      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-admin@example.com}
-      FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-unused-in-book-service}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      PINECONE_API_KEY: ${PINECONE_API_KEY:-disabled}
-      MEILI_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-      RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-crawl}
-    depends_on:
-      book-db:
+      identity-db:
         condition: service_healthy
-      redis:
+
+  catalog-service:
+    build: ./catalog-service
+    environment:
+      DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_POSTGRES_DB:-mytruyen_catalog}
+      DB_USERNAME: ${POSTGRES_USER:-mytruyen}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-mytruyen}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    depends_on:
+      catalog-db:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  engagement-service:
+    build: ./engagement-service
+    environment:
+      DB_URL: jdbc:postgresql://engagement-db:5432/${ENGAGEMENT_POSTGRES_DB:-mytruyen_engagement}
+      DB_USERNAME: ${POSTGRES_USER:-mytruyen}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-mytruyen}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+    depends_on:
+      engagement-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  search-service:
+    build: ./search-service
+    environment:
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    depends_on:
       meilisearch:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  ingestion-worker:
+    build: ./ingestion-worker
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      INGESTION_QUEUE: mytruyen.ingestion.commands.v1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
 
   mytruyen-gateway:
     build: ./mytruyen-gateway
-    ports:
-      - "8080:8080"
+    ports: ["8080:8080"]
     environment:
-      AUTH_SERVICE_URI: http://auth-service:8081
-      USER_SERVICE_URI: http://user-service:8082
-      BOOK_SERVICE_URI: http://book-service:8000
+      IDENTITY_SERVICE_URI: http://identity-service:8081
+      CATALOG_SERVICE_URI: http://catalog-service:8082
+      ENGAGEMENT_SERVICE_URI: http://engagement-service:8083
+      SEARCH_SERVICE_URI: http://search-service:8000
       JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
       JWT_ALGORITHM: RS256
       JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
     depends_on:
-      - auth-service
-      - user-service
-      - book-service
+      - identity-service
+      - catalog-service
+      - engagement-service
+      - search-service
 
 volumes:
-  book-db-data:
-  user-db-data:
+  identity-db-data:
+  catalog-db-data:
+  engagement-db-data:
   meili-data:
   rabbitmq-data:
