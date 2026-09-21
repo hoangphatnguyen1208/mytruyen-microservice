@@ -40,18 +40,18 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<?> create(@RequestBody UserCreate userCreate) {
+    public ResponseEntity<Response<UserPublic>> create(@RequestBody UserCreate userCreate) {
         UserPublic user = userService.save(userCreate);
         URI uri = URI.create("/v1/users/" + user.getId());
         return ResponseEntity.created(uri).body(Response.success(201, user));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserRegister userRegister) {
-        UserPublic user = userService.save(userRegister);
-        URI uri = URI.create("/v1/users/" + user.getId());
-        return ResponseEntity.created(uri).body(Response.success(201, user));
-    }
+//    @PostMapping("/register")
+//    public ResponseEntity<?> register(@RequestBody UserRegister userRegister) {
+//        UserPublic user = userService.save(userRegister);
+//        URI uri = URI.create("/v1/users/" + user.getId());
+//        return ResponseEntity.created(uri).body(Response.success(201, user));
+//    }
 
     @GetMapping("/{id}")
     @SecurityRequirement(name = "bearerAuth")

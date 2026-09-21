@@ -17,3 +17,6 @@ logging:
 user:
   service:
     url: ${USER_SERVICE_URL:http://localhost:8082}
+
+app:
+  intern-api-key: ${internal-api-key:mytruyen}

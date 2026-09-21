@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import online.mytruyen.authservice.client.UserClient;
 import online.mytruyen.authservice.dto.UserInternal;
 import online.mytruyen.authservice.dto.UserLogin;
+import online.mytruyen.authservice.dto.UserPublic;
+import online.mytruyen.authservice.dto.UserRegister;
 import online.mytruyen.authservice.exception.UnauthorizedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,5 +25,9 @@ public class AuthService {
         }
 
         return jwtService.generateToken(user.getId(), user.getRoles());
+    }
+
+    public UserPublic register(UserRegister userRegister) {
+        return userClient.register(userRegister).getData();
     }
 }

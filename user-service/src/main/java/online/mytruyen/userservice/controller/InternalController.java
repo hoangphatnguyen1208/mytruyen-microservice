@@ -3,20 +3,22 @@ package online.mytruyen.userservice.controller;
 import lombok.AllArgsConstructor;
 import online.mytruyen.userservice.common.Response;
 import online.mytruyen.userservice.dto.UserInternal;
+import online.mytruyen.userservice.dto.UserPublic;
+import online.mytruyen.userservice.dto.UserRegister;
 import online.mytruyen.userservice.entity.UserEntity;
 import online.mytruyen.userservice.exception.UserNotFoundException;
 import online.mytruyen.userservice.repository.UserRepository;
+import online.mytruyen.userservice.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/internal/users")
 @AllArgsConstructor
 public class InternalController {
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @GetMapping("/by-username/{username}")
     public ResponseEntity<Response<UserInternal>> getUserByUsername(@PathVariable String username) {
@@ -37,5 +39,11 @@ public class InternalController {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return ResponseEntity.ok(Response.success(200, new UserInternal(user)));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<Response<UserPublic>> register(@RequestBody UserRegister userRegister) {
+        UserPublic user = userService.save(userRegister);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Response.success(201, user));
     }
 }

@@ -3,6 +3,8 @@ package online.mytruyen.authservice.common;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.net.URI;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -10,14 +12,14 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class Response<T> {
     private int status_code;
-    private boolean status;
+    private boolean success;
     private String message;
     private T data;
 
     public static <T> Response<T> success(int status_code, T data) {
         return Response.<T>builder()
                 .status_code(status_code)
-                .status(true)
+                .success(true)
                 .message("Success")
                 .data(data)
                 .build();
@@ -26,7 +28,7 @@ public class Response<T> {
     public static <T> Response<T> error(int status_code, String message) {
         return Response.<T>builder()
                 .status_code(status_code)
-                .status(false)
+                .success(false)
                 .message(message)
                 .data(null)
                 .build();

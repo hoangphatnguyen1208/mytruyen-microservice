@@ -25,3 +25,4 @@ app:
   admin:
     username: ${ADMIN_USERNAME:}
     password: ${ADMIN_PASSWORD:}
+  intern-api-key: ${INTERNAL_API_KEY}
