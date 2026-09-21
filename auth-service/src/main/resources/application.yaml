@@ -20,4 +20,4 @@ user:
     url: ${USER_SERVICE_URL:http://localhost:8082}
 
 app:
-  intern-api-key: ${internal-api-key:mytruyen}
+  internal-api-key: ${INTERNAL_API_KEY}

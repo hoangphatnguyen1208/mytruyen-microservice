@@ -25,6 +25,6 @@ public interface UserClient {
     @GetMapping("/api/internal/users/by-email/{email}")
     Response<UserInternal> getUserByEmail(@PathVariable String email);
 
-    @PostMapping("api/internal/users/register")
+    @PostMapping("/api/internal/users/register")
     Response<UserPublic> register(@RequestBody UserRegister userRegister);
 }
