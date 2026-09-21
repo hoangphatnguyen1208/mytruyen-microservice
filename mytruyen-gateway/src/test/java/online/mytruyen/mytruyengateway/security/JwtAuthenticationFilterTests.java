@@ -19,6 +19,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -42,7 +43,7 @@ class JwtAuthenticationFilterTests {
     @Test
     void rejectsProtectedRequestWithoutToken() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/v1/books").build()
+                MockServerHttpRequest.patch("/api/v1/books/id/1").build()
         );
 
         StepVerifier.create(filter.filter(exchange, ignored -> Mono.empty())).verifyComplete();
@@ -62,7 +63,7 @@ class JwtAuthenticationFilterTests {
                 .signWith(keyPair.getPrivate(), SignatureAlgorithm.RS256)
                 .compact();
         MockServerWebExchange exchange = MockServerWebExchange.from(
-                MockServerHttpRequest.get("/api/v1/books")
+                MockServerHttpRequest.patch("/api/v1/books/id/1")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .header(JwtAuthenticationFilter.USER_ID_HEADER, "forged-user")
                         .header(JwtAuthenticationFilter.USER_ROLES_HEADER, "ROLE_ADMIN,ROLE_SUPERUSER")
@@ -99,5 +100,95 @@ class JwtAuthenticationFilterTests {
 
         assertThat(forwarded.get().getRequest().getHeaders().getFirst(JwtAuthenticationFilter.USER_ID_HEADER))
                 .isNull();
+    }
+
+    @Test
+    void permitsRegistrationWithoutToken() {
+        assertPublicRequest(MockServerHttpRequest.post("/api/v1/auth/register").build());
+    }
+
+    @Test
+    void permitsPublicBookReadsButProtectsMutations() {
+        assertPublicRequest(MockServerHttpRequest.get("/api/v1/books/slug/example").build());
+
+        MockServerWebExchange mutation = MockServerWebExchange.from(
+                MockServerHttpRequest.delete("/api/v1/books/id/1").build()
+        );
+        StepVerifier.create(filter.filter(mutation, ignored -> Mono.empty())).verifyComplete();
+        assertThat(mutation.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void permitsCorsPreflightWithoutToken() {
+        assertPublicRequest(MockServerHttpRequest.options("/api/v1/books").build());
+    }
+
+    @Test
+    void exposesOnlyActuatorHealthWithoutToken() {
+        assertPublicRequest(MockServerHttpRequest.get("/actuator/health/readiness").build());
+
+        MockServerWebExchange info = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/actuator/info").build()
+        );
+        StepVerifier.create(filter.filter(info, ignored -> Mono.empty())).verifyComplete();
+        assertThat(info.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void rejectsTokenWithWrongIssuer() {
+        assertRejectedToken(createToken(keyPair, "another-issuer", "mytruyen-api", SignatureAlgorithm.RS256));
+    }
+
+    @Test
+    void rejectsTokenWithWrongAudience() {
+        assertRejectedToken(createToken(keyPair, "mytruyen-auth", "another-audience", SignatureAlgorithm.RS256));
+    }
+
+    @Test
+    void rejectsTokenSignedByAnotherKey() throws Exception {
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        assertRejectedToken(createToken(generator.generateKeyPair(), "mytruyen-auth", "mytruyen-api", SignatureAlgorithm.RS256));
+    }
+
+    @Test
+    void rejectsUnexpectedRsaAlgorithm() {
+        assertRejectedToken(createToken(keyPair, "mytruyen-auth", "mytruyen-api", SignatureAlgorithm.RS512));
+    }
+
+    private String createToken(KeyPair signingKey, String issuer, String audience, SignatureAlgorithm algorithm) {
+        return Jwts.builder()
+                .setSubject("8ed8b6e8-3cc1-498d-a52a-c470835625c9")
+                .setIssuer(issuer)
+                .setAudience(audience)
+                .claim("roles", List.of("ROLE_ADMIN"))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(signingKey.getPrivate(), algorithm)
+                .compact();
+    }
+
+    private void assertRejectedToken(String token) {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.patch("/api/v1/books/id/1")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .build()
+        );
+
+        StepVerifier.create(filter.filter(exchange, ignored -> Mono.empty())).verifyComplete();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private void assertPublicRequest(MockServerHttpRequest request) {
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        AtomicBoolean forwarded = new AtomicBoolean();
+
+        StepVerifier.create(filter.filter(exchange, value -> {
+            forwarded.set(true);
+            return Mono.empty();
+        })).verifyComplete();
+
+        assertThat(forwarded).isTrue();
     }
 }
