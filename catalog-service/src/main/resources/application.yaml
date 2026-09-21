@@ -1,0 +1,31 @@
+server:
+  port: ${PORT:8082}
+
+spring:
+  application:
+    name: catalog-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mytruyen_catalog}
+    username: ${DB_USERNAME:mytruyen}
+    password: ${DB_PASSWORD:mytruyen}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:mytruyen}
+    password: ${RABBITMQ_PASSWORD:mytruyen}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
