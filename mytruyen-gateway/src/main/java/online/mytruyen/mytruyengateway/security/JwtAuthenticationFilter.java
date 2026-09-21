@@ -21,11 +21,21 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public static final String USER_ID_HEADER = "X-User-Id";
     public static final String USER_ROLES_HEADER = "X-User-Roles";
+    private static final Set<String> PUBLIC_GET_PREFIXES = Set.of(
+            "/api/v1/books",
+            "/api/v1/chapters",
+            "/api/v1/genres",
+            "/api/v1/tags",
+            "/api/v1/authors",
+            "/api/v1/book-statuses",
+            "/api/v1/search"
+    );
 
     private final JwtProperties properties;
 
@@ -105,18 +115,23 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private boolean isPublicRequest(ServerWebExchange exchange) {
         String path = exchange.getRequest().getPath().value();
         HttpMethod method = exchange.getRequest().getMethod();
-        if (path.startsWith("/actuator/")) {
+
+        if (HttpMethod.OPTIONS.equals(method)) {
             return true;
         }
-        if (HttpMethod.GET.equals(method) && path.equals("/api/v1/auth/health")) {
+
+        if (HttpMethod.GET.equals(method)
+                && (path.equals("/actuator/health") || path.startsWith("/actuator/health/"))) {
             return true;
         }
-        return HttpMethod.POST.equals(method) && (
-                path.equals("/api/v1/auth/login")
-                        || path.equals("/api/v1/auth/login/access-token")
-                        || path.equals("/api/v1/auth/register")
-                        || path.equals("/api/v1/auth/refresh-token")
-        );
+
+        if (HttpMethod.POST.equals(method)) {
+            return path.equals("/api/v1/auth/login")
+                    || path.equals("/api/v1/auth/register");
+        }
+
+        return HttpMethod.GET.equals(method) && PUBLIC_GET_PREFIXES.stream()
+                .anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
