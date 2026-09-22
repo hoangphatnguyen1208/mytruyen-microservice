@@ -1,6 +1,6 @@
 # Thiết kế database theo service
 
-Trạng thái: thiết kế đề xuất, ngày 2026-09-22. Chưa áp dụng DDL hoặc chuyển dữ liệu. Các migration V1 hiện chỉ chứa `service_metadata`; triển khai nghiệp vụ bằng migration mới, không sửa migration đã chạy. Thiết kế cập nhật phạm vi storage so với scaffold: Search và Ingestion cần PostgreSQL riêng khi triển khai consumer/job bền vững, chưa có trong Compose hiện tại.
+Trạng thái: thiết kế đích, ngày 2026-09-22. Identity đã có Flyway V2 và nghiệp vụ JPA; Catalog đã có Flyway V2 và tầng persistence JPA (chưa có CRUD API). Chi tiết schema triển khai và khác biệt so với thiết kế nằm trong README của từng service. Chưa chuyển dữ liệu production. V1 chứa `service_metadata` được giữ nguyên; bổ sung nghiệp vụ bằng migration mới. Search và Ingestion cần PostgreSQL riêng khi triển khai consumer/job bền vững, chưa có trong Compose hiện tại.
 
 ## 1. Ranh giới và quy ước
 
