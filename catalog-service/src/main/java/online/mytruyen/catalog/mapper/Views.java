@@ -1,7 +1,8 @@
-package online.mytruyen.catalog.api;
+package online.mytruyen.catalog.mapper;
+
 
 import online.mytruyen.catalog.domain.*;
-import static online.mytruyen.catalog.api.CatalogDtos.*;
+import static online.mytruyen.catalog.dto.CatalogDtos.*;
 
 public final class Views {
     private Views() {}

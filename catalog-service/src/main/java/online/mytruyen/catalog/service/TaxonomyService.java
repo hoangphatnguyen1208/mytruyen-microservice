@@ -1,13 +1,17 @@
 package online.mytruyen.catalog.service;
 
-import online.mytruyen.catalog.api.*;
+import online.mytruyen.catalog.dto.ApiResponses;
+import online.mytruyen.catalog.exception.ApiException;
+import online.mytruyen.catalog.mapper.Views;
+import online.mytruyen.catalog.support.Patches;
+
 import online.mytruyen.catalog.domain.*;
 import online.mytruyen.catalog.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.*;
 import java.util.*;
-import static online.mytruyen.catalog.api.CatalogDtos.*;
+import static online.mytruyen.catalog.dto.CatalogDtos.*;
 
 @Service @Transactional(readOnly = true)
 public class TaxonomyService {

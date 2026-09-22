@@ -1,4 +1,6 @@
-package online.mytruyen.catalog.api;
+package online.mytruyen.catalog.exception;
+
+import online.mytruyen.catalog.dto.ApiResponses;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;

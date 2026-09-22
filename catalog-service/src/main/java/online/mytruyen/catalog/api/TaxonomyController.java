@@ -1,13 +1,14 @@
 package online.mytruyen.catalog.api;
 
+
 import online.mytruyen.catalog.service.TaxonomyService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import java.util.*;
-import static online.mytruyen.catalog.api.ApiResponses.*;
-import static online.mytruyen.catalog.api.CatalogDtos.*;
+import static online.mytruyen.catalog.dto.ApiResponses.*;
+import static online.mytruyen.catalog.dto.CatalogDtos.*;
 
 @RestController @RequestMapping("/api/v1")
 public class TaxonomyController {

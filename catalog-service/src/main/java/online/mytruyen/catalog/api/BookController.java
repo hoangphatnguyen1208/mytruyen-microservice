@@ -1,8 +1,10 @@
 package online.mytruyen.catalog.api;
 
+import online.mytruyen.catalog.dto.ApiResponses;
+
 import jakarta.validation.Valid;
-import online.mytruyen.catalog.api.CatalogDtos.*;
-import online.mytruyen.catalog.api.ApiResponses.Response;
+import online.mytruyen.catalog.dto.CatalogDtos.*;
+import online.mytruyen.catalog.dto.ApiResponses.Response;
 import online.mytruyen.catalog.service.BookService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
@@ -49,4 +51,3 @@ public class BookController {
     @DeleteMapping("/books/slug/{slug}")
     public Response<Void> deleteSlug(@PathVariable String slug) { service.deleteSlug(slug); return Response.ok(null); }
 }
-

@@ -1,4 +1,4 @@
-package online.mytruyen.catalog.api;
+package online.mytruyen.catalog.dto;
 
 import jakarta.validation.constraints.*;
 import java.time.Instant;

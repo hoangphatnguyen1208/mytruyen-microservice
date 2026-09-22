@@ -1,4 +1,6 @@
-package online.mytruyen.catalog.api;
+package online.mytruyen.catalog.support;
+
+import online.mytruyen.catalog.exception.ApiException;
 
 import jakarta.validation.Validator;
 import org.springframework.stereotype.Component;

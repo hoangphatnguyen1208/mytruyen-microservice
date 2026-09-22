@@ -1,4 +1,6 @@
-package online.mytruyen.catalog.api;
+package online.mytruyen.catalog.dto;
+
+import online.mytruyen.catalog.exception.ApiException;
 
 import java.util.List;
 public final class ApiResponses {

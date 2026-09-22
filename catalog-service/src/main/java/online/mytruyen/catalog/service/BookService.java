@@ -1,7 +1,11 @@
 package online.mytruyen.catalog.service;
 
-import online.mytruyen.catalog.api.*;
-import online.mytruyen.catalog.api.CatalogDtos.*;
+import online.mytruyen.catalog.dto.ApiResponses;
+import online.mytruyen.catalog.exception.ApiException;
+import online.mytruyen.catalog.mapper.Views;
+import online.mytruyen.catalog.support.Patches;
+
+import online.mytruyen.catalog.dto.CatalogDtos.*;
 import online.mytruyen.catalog.domain.*;
 import online.mytruyen.catalog.repository.*;
 import org.springframework.stereotype.Service;
@@ -122,4 +126,3 @@ public class BookService {
             .orElseThrow(() -> ApiException.missing("Book not found")).getId());
     }
 }
-
