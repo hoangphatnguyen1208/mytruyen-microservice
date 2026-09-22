@@ -18,7 +18,7 @@ spring:
             - id: catalog-service
               uri: ${CATALOG_SERVICE_URI:http://localhost:8082}
               predicates:
-                - Path=/api/v1/books/**,/api/v1/chapters/**,/api/v1/authors/**,/api/v1/genres/**,/api/v1/tags/**,/api/v1/book-statuses/**
+                - Path=/api/v1/books/**,/api/v1/chapters/**,/api/v1/authors/**,/api/v1/genres/**,/api/v1/tags/**,/api/v1/book-statuses/**,/api/v1/admin/catalog/**
             - id: engagement-service
               uri: ${ENGAGEMENT_SERVICE_URI:http://localhost:8083}
               predicates:

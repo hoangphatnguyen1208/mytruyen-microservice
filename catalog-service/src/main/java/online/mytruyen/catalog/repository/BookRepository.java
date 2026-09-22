@@ -8,7 +8,10 @@ import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.*;
 
-public interface BookRepository extends JpaRepository<Book, Long> {
+public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
+    @Override
+    @EntityGraph(attributePaths = {"author", "status"})
+    Page<Book> findAll(org.springframework.data.jpa.domain.Specification<Book> specification, Pageable pageable);
     Optional<Book> findByIdAndDeletedAtIsNull(Long id);
     Optional<Book> findBySlugAndDeletedAtIsNull(String slug);
 
