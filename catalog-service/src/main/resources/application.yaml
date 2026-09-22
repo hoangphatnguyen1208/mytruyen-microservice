@@ -2,6 +2,9 @@ server:
   port: ${PORT:8082}
 
 spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
   application:
     name: catalog-service
   datasource:
@@ -29,3 +32,8 @@ management:
     health:
       probes:
         enabled: true
+
+jwt:
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+  issuer: ${JWT_ISSUER:mytruyen-auth}
+  audience: ${JWT_AUDIENCE:mytruyen-api}

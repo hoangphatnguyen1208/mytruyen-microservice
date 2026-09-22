@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.*;
     "spring.rabbitmq.listener.direct.auto-startup=false",
     "management.health.rabbit.enabled=false"
 })
-class CatalogPersistenceTests {
+class CatalogPersistenceTests extends CatalogJwtTestSupport {
     @Autowired BookRepository books;
     @Autowired BookStatusRepository statuses;
     @Autowired AuthorRepository authors;

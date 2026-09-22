@@ -93,6 +93,9 @@ services:
       DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_POSTGRES_DB:-mytruyen_catalog}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
+      JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-mytruyen}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
