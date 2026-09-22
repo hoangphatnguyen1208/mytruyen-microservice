@@ -24,8 +24,8 @@ public class BootstrapAdmin implements ApplicationRunner {
         if(!enabled) return;
         if(email.isBlank() || !email.contains("@") || email.length()>254) throw new IllegalArgumentException("Valid bootstrap email required");
         AccountService.validPassword(password);
-        store.jdbc().queryForList("SELECT id FROM roles WHERE id=2 FOR UPDATE");
-        long count=store.jdbc().queryForObject("SELECT COUNT(*) FROM users u JOIN user_roles r ON u.id=r.user_id WHERE r.role_id=2 AND u.is_active=TRUE AND u.deleted_at IS NULL",Long.class);
+        store.lockAdminPolicy();
+        long count=store.activeAdmins(null);
         if(count==0) accounts.adminCreate(new Contracts.AdminCreate(email,null,password,List.of(1,2)));
     }
 }
