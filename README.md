@@ -7,13 +7,13 @@ This repository is being migrated from `mytruyen-be` with a strangler-style, ser
 | Directory | Runtime | Responsibility | Current phase |
 |---|---|---|---|
 | `mytruyen-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
-| `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Walking skeleton |
+| `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Implemented; local integration tests, PostgreSQL deployment pending |
 | `catalog-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | Walking skeleton |
 | `search-service` | Python 3.12 / FastAPI | Search API and search projections | Walking skeleton |
 | `ingestion-worker` | Python 3.12 | Crawl/import commands and data normalization | Walking skeleton |
 | `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 
-`auth-service` and `user-service` are legacy transition sources. They are intentionally not included in the default Compose topology. Their behavior will be moved into `identity-service`, tested for parity, and only then removed.
+Auth and User have been consolidated into [Identity](identity-service/README.md). Their former source is retained in Git history. Identity handles registration, login, refresh rotation, logout, account administration and self-service profiles without credential HTTP calls. See its README for API compatibility changes and offline user import instructions.
 
 ## Infrastructure
 
@@ -21,7 +21,7 @@ This repository is being migrated from `mytruyen-be` with a strangler-style, ser
 - RabbitMQ for integration events and ingestion commands.
 - Meilisearch for the search projection.
 - Redis is reserved for cache/rate limiting; it is not a second crawl queue.
-- Flyway owns Java service schema changes. Hibernate runs with `ddl-auto: validate`.
+- Flyway owns Java service schema changes. Identity uses JDBC transactions; Catalog/Engagement use Hibernate with `ddl-auto: validate`.
 
 ## Run locally
 
@@ -61,7 +61,7 @@ Push-Location ingestion-worker; uv run pytest; Pop-Location
 ## Migration phases
 
 1. Walking skeleton and deployable topology (current).
-2. Merge Auth/User behavior and data into Identity.
+2. Identity implementation complete; rehearse PostgreSQL migration and account-data cutover before deployment.
 3. Implement Catalog schema/API and migrate book/chapter data.
 4. Build event outbox and Search projection.
 5. Move crawler into Ingestion Worker.
