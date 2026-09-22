@@ -8,4 +8,6 @@ import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.*;
 
-public interface AuthorRepository extends JpaRepository<Author, UUID> {}
+public interface AuthorRepository extends JpaRepository<Author, UUID> {
+    List<Author> findByName(String name);
+}
