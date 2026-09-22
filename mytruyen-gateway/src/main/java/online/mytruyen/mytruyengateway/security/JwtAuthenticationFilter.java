@@ -127,7 +127,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         if (HttpMethod.POST.equals(method)) {
             return path.equals("/api/v1/auth/login")
-                    || path.equals("/api/v1/auth/register");
+                    || path.equals("/api/v1/auth/register")
+                    || path.equals("/api/v1/auth/login/access-token")
+                    || path.equals("/api/v1/auth/refresh-token")
+                    || path.equals("/api/v1/auth/logout");
         }
 
         return HttpMethod.GET.equals(method) && PUBLIC_GET_PREFIXES.stream()

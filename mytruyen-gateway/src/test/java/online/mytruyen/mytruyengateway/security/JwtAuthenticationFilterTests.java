@@ -108,6 +108,17 @@ class JwtAuthenticationFilterTests {
     }
 
     @Test
+    void permitsRefreshAndLogoutButProtectsLogoutAll() {
+        for (String path : List.of("refresh-token", "logout", "login/access-token")) {
+            assertPublicRequest(MockServerHttpRequest.post("/api/v1/auth/" + path).build());
+        }
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/auth/logout-all").build());
+        StepVerifier.create(filter.filter(exchange, ignored -> Mono.empty())).verifyComplete();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void permitsPublicBookReadsButProtectsMutations() {
         assertPublicRequest(MockServerHttpRequest.get("/api/v1/books/slug/example").build());
 
