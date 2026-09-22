@@ -1,4 +1,6 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.exception;
+
+import online.mytruyen.identity.dto.Contracts;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;

@@ -1,4 +1,15 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.service;
+
+import online.mytruyen.identity.domain.CredentialEntity;
+import online.mytruyen.identity.domain.OutboxEventEntity;
+import online.mytruyen.identity.domain.RoleEntity;
+import online.mytruyen.identity.domain.UserEntity;
+import online.mytruyen.identity.exception.ApiError;
+import online.mytruyen.identity.repository.CredentialRepository;
+import online.mytruyen.identity.repository.OutboxEventRepository;
+import online.mytruyen.identity.repository.RoleRepository;
+import online.mytruyen.identity.repository.SessionRepository;
+import online.mytruyen.identity.repository.UserRepository;
 
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -6,7 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import java.time.Instant;
 import java.util.*;
-import static online.mytruyen.identity.Contracts.*;
+import static online.mytruyen.identity.dto.Contracts.*;
 
 @Component
 public class IdentityStore {

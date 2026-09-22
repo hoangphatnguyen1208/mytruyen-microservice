@@ -1,4 +1,4 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

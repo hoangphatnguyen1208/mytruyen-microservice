@@ -1,4 +1,8 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.service;
+
+import online.mytruyen.identity.domain.CredentialEntity;
+import online.mytruyen.identity.domain.UserEntity;
+import online.mytruyen.identity.exception.ApiError;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -6,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
-import static online.mytruyen.identity.Contracts.*;
+import static online.mytruyen.identity.dto.Contracts.*;
 
 @Service
 public class AccountService {

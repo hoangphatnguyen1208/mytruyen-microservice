@@ -1,4 +1,6 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.repository;
+
+import online.mytruyen.identity.domain.OutboxEventEntity;
 
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;

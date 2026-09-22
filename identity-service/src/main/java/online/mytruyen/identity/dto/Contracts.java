@@ -1,4 +1,4 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.dto;
 
 import jakarta.validation.constraints.*;
 import java.time.Instant;

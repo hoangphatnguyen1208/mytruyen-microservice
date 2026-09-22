@@ -1,4 +1,4 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.exception;
 
 public class ApiError extends RuntimeException {
     final int status;

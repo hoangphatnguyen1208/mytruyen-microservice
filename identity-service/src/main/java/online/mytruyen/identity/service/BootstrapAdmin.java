@@ -1,4 +1,6 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.service;
+
+import online.mytruyen.identity.dto.Contracts;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

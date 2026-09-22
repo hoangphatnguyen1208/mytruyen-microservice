@@ -1,10 +1,14 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.api;
+
+import online.mytruyen.identity.security.IdentityPrincipal;
+import online.mytruyen.identity.service.AccountService;
+import online.mytruyen.identity.service.AuthService;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import static online.mytruyen.identity.Contracts.*;
+import static online.mytruyen.identity.dto.Contracts.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")

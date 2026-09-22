@@ -1,4 +1,7 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.security;
+
+import online.mytruyen.identity.exception.ApiError;
+import online.mytruyen.identity.service.IdentityStore;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;

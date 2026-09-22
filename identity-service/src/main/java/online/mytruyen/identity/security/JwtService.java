@@ -1,4 +1,6 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.security;
+
+import online.mytruyen.identity.dto.Contracts;
 
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +16,8 @@ public class JwtService {
     private final RSAPrivateKey privateKey;
     private final RSAPublicKey publicKey;
     private final String issuer, audience;
-    final long ttl;
+    private final long ttl;
+    public long accessTokenTtl() { return ttl; }
     public JwtService(@Value("${jwt.private-key}") String privateValue,
             @Value("${jwt.public-key}") String publicValue,
             @Value("${jwt.issuer}") String issuer, @Value("${jwt.audience}") String audience,
@@ -26,14 +29,14 @@ public class JwtService {
             throw new IllegalArgumentException("Invalid JWT key pair or lifetime");
         this.issuer=issuer; this.audience=audience; this.ttl=ttl;
     }
-    String issue(Contracts.UserView user, UUID sessionId) {
+    public String issue(Contracts.UserView user, UUID sessionId) {
         Instant now=Instant.now();
         return Jwts.builder().setSubject(user.id().toString()).setIssuer(issuer).setAudience(audience)
             .setIssuedAt(Date.from(now)).setExpiration(Date.from(now.plusSeconds(ttl))).setId(UUID.randomUUID().toString())
             .claim("sid",sessionId.toString()).claim("roles",user.roles().stream().map(r->"ROLE_"+r).toList())
             .signWith(privateKey,SignatureAlgorithm.RS256).compact();
     }
-    Claims verify(String token) {
+    public Claims verify(String token) {
         var signed=Jwts.parserBuilder().setSigningKey(publicKey).requireIssuer(issuer).requireAudience(audience).build().parseClaimsJws(token);
         var c=signed.getBody();
         if (!"RS256".equals(signed.getHeader().getAlgorithm()) || c.getExpiration()==null ||

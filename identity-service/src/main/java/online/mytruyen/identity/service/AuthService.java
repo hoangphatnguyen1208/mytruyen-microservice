@@ -1,4 +1,12 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.service;
+
+import online.mytruyen.identity.domain.RefreshTokenEntity;
+import online.mytruyen.identity.domain.SessionEntity;
+import online.mytruyen.identity.domain.UserEntity;
+import online.mytruyen.identity.exception.ApiError;
+import online.mytruyen.identity.repository.RefreshTokenRepository;
+import online.mytruyen.identity.repository.SessionRepository;
+import online.mytruyen.identity.security.JwtService;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +17,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import static online.mytruyen.identity.Contracts.*;
+import static online.mytruyen.identity.dto.Contracts.*;
 
 @Service
 public class AuthService {
@@ -104,7 +112,7 @@ public class AuthService {
         token.setCreatedAt(Instant.now());
         token.setExpiresAt(session.getExpiresAt());
         tokens.save(token);
-        return new Token(jwt.issue(user, session.getId()), raw, "bearer", jwt.ttl);
+        return new Token(jwt.issue(user, session.getId()), raw, "bearer", jwt.accessTokenTtl());
     }
 
     static String digest(String token) {

@@ -1,4 +1,4 @@
-package online.mytruyen.identity;
+package online.mytruyen.identity.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
