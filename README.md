@@ -17,6 +17,8 @@ Auth and User have been consolidated into [Identity](identity-service/README.md)
 
 ## Infrastructure
 
+Source organization and package responsibilities: [Source layout](docs/architecture/source-layout.md).
+
 - One PostgreSQL database per stateful domain service.
 - RabbitMQ for integration events and ingestion commands.
 - Meilisearch for the search projection.
