@@ -21,7 +21,7 @@ Auth and User have been consolidated into [Identity](identity-service/README.md)
 - RabbitMQ for integration events and ingestion commands.
 - Meilisearch for the search projection.
 - Redis is reserved for cache/rate limiting; it is not a second crawl queue.
-- Flyway owns Java service schema changes. Identity uses JDBC transactions; Catalog/Engagement use Hibernate with `ddl-auto: validate`.
+- Flyway owns Java service schema changes. Identity uses Spring Data JPA/Hibernate; Java domain services use `ddl-auto: validate`.
 
 ## Run locally
 

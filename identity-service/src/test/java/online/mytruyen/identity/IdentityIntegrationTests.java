@@ -35,6 +35,7 @@ class IdentityIntegrationTests {
     @Autowired JdbcTemplate db;
     @Autowired AccountService accounts;
     @Autowired JwtService jwt;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
     final ObjectMapper json=new ObjectMapper();
     final HttpClient http=HttpClient.newHttpClient();
     @BeforeEach void clean() {
@@ -172,5 +173,35 @@ class IdentityIntegrationTests {
         assertThat(json.readTree(response.body()).has("access_token")).isTrue();
         assertThat(request("DELETE","/api/v1/users/me",null,access(t)).status()).isEqualTo(204);
         assertThat(post("refresh-token",Map.of("refresh_token",refresh(t))).status()).isEqualTo(401);
+    }
+
+    @Test void jpaVersionAndOutboxRemainConsistentAndStaleWritesFail() throws Exception {
+        var token = registerLogin("version@example.com");
+        UUID id = UUID.fromString(request("GET", "/api/v1/users/me", null, access(token)).body().at("/data/id").asText());
+        long before = db.queryForObject("SELECT version FROM users WHERE id=?", Long.class, id);
+        assertThat(request("PATCH", "/api/v1/users/me", Map.of("full_name", "Changed"), access(token)).status()).isEqualTo(200);
+        long after = db.queryForObject("SELECT version FROM users WHERE id=?", Long.class, id);
+        assertThat(after).isGreaterThan(before);
+        assertThat(db.queryForObject("SELECT aggregate_version FROM outbox_events WHERE aggregate_id=? AND event_type='UserUpdated'", Long.class, id)).isEqualTo(after);
+
+        var first = entityManagerFactory.createEntityManager();
+        var second = entityManagerFactory.createEntityManager();
+        try {
+            first.getTransaction().begin();
+            second.getTransaction().begin();
+            var one = first.find(UserEntity.class, id);
+            var two = second.find(UserEntity.class, id);
+            one.setFullName("First");
+            first.getTransaction().commit();
+            two.setFullName("Stale");
+            assertThatThrownBy(() -> second.getTransaction().commit())
+                    .isInstanceOf(jakarta.persistence.RollbackException.class);
+            assertThat(db.queryForObject("SELECT full_name FROM users WHERE id=?", String.class, id)).isEqualTo("First");
+        } finally {
+            if (first.getTransaction().isActive()) first.getTransaction().rollback();
+            if (second.getTransaction().isActive()) second.getTransaction().rollback();
+            first.close();
+            second.close();
+        }
     }
 }
