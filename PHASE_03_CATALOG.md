@@ -12,6 +12,14 @@ HTTP integration tests cover permissions, invalid tokens, draft/publish/delete v
 
 Verification: Catalog 14 tests (8 persistence + 6 HTTP) passed; Gateway 13 tests passed; Compose configuration validates with .env.example. Catalog bootJar builds successfully. A real PostgreSQL concurrency/integration run is still required before deployment.
 
+## Phase 03c — draft chapter and content CRUD
+
+Added chapter DTOs, mapper, transactional service, public chapter reads and ADMIN-only draft/content writes. Supports book ID and slug addressing, separate admin reads, pagination, soft deletion, server-calculated content hash/word count and parent-before-child locks. No Flyway/schema changes. Existing published chapters are read-only until the publication/statistics workflow is implemented.
+
+Added HTTP tests for draft/content lifecycle, validation/permissions, rollback, published and deleted-parent visibility, pagination/slug routes and concurrent duplicate creation. All tests use H2 PostgreSQL mode; PostgreSQL lock behavior still requires a real-database run.
+
+Verification for phase 03c: Catalog test + bootJar succeeded with 19 tests (11 HTTP + 8 persistence), zero failures. Gateway route/configuration was unchanged: its existing chapters and admin/catalog prefixes already cover these endpoints.
+
 No import operation, chapter publish workflow, outbox relay or Engagement consumer has been implemented yet. This is intentionally a small stage, not completion of the full Catalog migration. No production data has been changed.
 
-Next: chapter/content workflows with transactional stats and versioned outbox writes. Then add relay/consumers and rehearse ID-preserving import and PostgreSQL/Docker deployment.
+Next: chapter publish/unpublish and published edits/deletion with transactional stats and versioned outbox writes. Then add relay/consumers and rehearse ID-preserving import and PostgreSQL/Docker deployment.

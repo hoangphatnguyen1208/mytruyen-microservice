@@ -1,6 +1,6 @@
 # Catalog service — JPA and catalog APIs
 
-This stage provides Flyway schema, JPA repositories, JWT authorization and taxonomy/book HTTP APIs. Chapter publication transactions remain the next stage.
+This stage provides Flyway schema, JPA repositories, JWT authorization, taxonomy/book APIs and draft chapter/content CRUD. Chapter publication transactions remain the next stage.
 
 ## Schema ownership
 
@@ -46,7 +46,25 @@ Lists accept page (1-based), limit (1–100). Books additionally accept status (
 
 JWT verification requires RS256 with a minimum 2048-bit RSA key, issuer, audience, UUID subject, issued-at, expiration and a roles array. Configure JWT_PUBLIC_KEY_BASE64 (DER public key), JWT_ISSUER and JWT_AUDIENCE consistently with Identity. Verification is offline: logout/session revocation becomes effective here when access tokens expire. No Identity DB access, outbox events, search synchronization or Engagement projection consumer is included yet.
 
-## Build and verification
+## Chapter/content APIs (phase 03c)
+
+Under `/api/v1`, public reads require both chapter and parent book to be published and not deleted. Drafts remain hidden even when an ADMIN uses a public URL. ADMIN reads use the same suffixes under `/admin/catalog/chapters` instead of `/chapters`.
+
+- GET `/chapters`: all public chapter metadata, paginated.
+- GET `/chapters/id/{book_id}` or `/chapters/slug/{book_slug}`: chapter metadata for one book.
+- GET either path with `/{index}`: one chapter. Lists do not load chapter content.
+- POST `/chapters/id/{book_id}` or `/chapters/slug/{book_slug}`: create a draft with `index` (positive integer) and `name` (nonblank, maximum 500 characters). Optional `published` may only be false/null; true is rejected.
+- PATCH `/chapters/id/{chapter_id}`: partial update of index/name. IDs, book_id, creator_id, word_count, timestamps and version are not writable.
+- DELETE `/chapters/id/{chapter_id}`: soft-delete a draft. The legacy DELETE `/chapters/slug/{chapter_id}` alias still takes a chapter ID, not a slug. Deleted chapter indexes remain reserved; no restore API yet.
+- GET/POST/PATCH/DELETE `/chapters/content/id/{book_id}/{index}` or `/chapters/content/slug/{book_slug}/{index}`: read/create/update/delete content. POST/PATCH accept only `content` (nonblank, maximum 1,000,000 characters). POST conflicts when content already exists; PATCH requires existing content. Deleting content physically removes only that draft's content row and resets its word count to zero; chapter metadata remains.
+
+All writes require ADMIN. New chapter creator_id is the JWT subject. Every write locks parent book before chapter, then updates metadata/content in one JPA transaction. SHA-256 is calculated over the exact UTF-8 content. Word count means Unicode-whitespace-delimited tokens, not linguistic words or HTML-aware counting; clients should submit plain text. Draft content edits advance chapter version but do not alter published book statistics. Deleting a chapter retains its content for later recovery workflows, but hides it from every endpoint.
+
+Published chapters are read-only in this phase: metadata/content edits and deletes return 409. Publishing/unpublishing, stats maintenance, outbox events and recovery are deferred together so these APIs cannot silently invalidate published counters. Existing published fixtures can be read; no API can publish a new chapter yet.
+
+Lists use page >= 1, limit 1–100, sort=index (ascending, default), -index (descending), or created_at (descending), with ID tie-breaker. Missing/hidden parents return 404. Responses use the existing envelope; create now returns chapter metadata rather than null. Content responses identify chapter_id, not a separate legacy content ID. Chapter view/comment counters are omitted until Engagement is implemented. These differences require frontend contract checks before cutover.
+
+## Build and verification commands
 
 Use Java 17 and run `gradlew.bat test bootJar`. Tests execute the same Flyway V1/V2 migrations on H2 PostgreSQL mode, then Hibernate schema validation. They cover JSON round-trip, relationships, constraints, visibility, deletion behavior, summary calculations and stale writes. Docker/PostgreSQL verification remains a deployment gate; H2 does not prove all PostgreSQL locking/planner behavior.
 
