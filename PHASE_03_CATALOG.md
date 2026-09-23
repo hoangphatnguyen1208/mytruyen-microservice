@@ -32,4 +32,14 @@ Verification: Catalog test + bootJar passed with 22 tests (14 HTTP/integration +
 
 No import operation, outbox relay or Engagement consumer has been implemented yet. This is intentionally a small stage, not completion of the full Catalog migration. No production data has been changed.
 
-Next: complete book/taxonomy event coverage and event contracts, then add relay/Search consumers and rehearse ID-preserving import and PostgreSQL/Docker deployment.
+## Phase 03e — legacy Book/Chapter contract migration
+
+Compared Book/Chapter controllers, schemas and queries against mytruyen-be. Restored sort=field / -field direction semantics, allowlisted book sorting across local content/engagement projections, legacy global chapter ordering and ID/slug pagination defaults. Sorting happens before database pagination with stable ID tie-breakers; invalid fields return 400.
+
+Restored chapter PATCH published support through the same publication validation/transaction used by explicit publish/unpublish endpoints. Caller-controlled IDs/counters and public draft visibility remain deliberately restricted.
+
+Verification: 25 Catalog tests (17 HTTP/integration + 8 persistence) and bootJar passed on H2 PostgreSQL mode. Added tests for scalar/counter/rating sorts, missing projection rows, null values, stable pages, chapter defaults and atomic legacy publication PATCH.
+
+See [Book/Chapter parity](docs/migration/book-chapter-parity.md) for unconverted features and intentional response differences. This is not complete frontend compatibility.
+
+Next, feature-first: migrate actual legacy text search/indexing and topboxes, then crawler/import; add only the event infrastructure required to keep these features reliable. PostgreSQL and frontend/Gateway contract checks remain deployment gates.
