@@ -73,7 +73,7 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
 
     @Test void flywayAppliedAndEntitiesValidateAgainstSchema() {
         assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"type\"='SQL' ORDER BY \"installed_rank\"", String.class))
-            .containsExactly("1", "2", "3");
+            .containsExactly("1", "2", "3", "4");
     }
 
     @Test void roundTripRelationsJsonAndSharedPrimaryKeys() {

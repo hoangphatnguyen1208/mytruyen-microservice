@@ -20,8 +20,10 @@ public class TaxonomyService {
     private final BookStatusRepository statuses;
     private final AuthorRepository authors;
     private final Patches patches;
-    public TaxonomyService(GenreRepository genres, TagRepository tags, BookStatusRepository statuses, AuthorRepository authors, Patches patches) {
+    private final SearchChanges searchChanges;
+    public TaxonomyService(GenreRepository genres, TagRepository tags, BookStatusRepository statuses, AuthorRepository authors, Patches patches, SearchChanges searchChanges) {
         this.genres=genres; this.tags=tags; this.statuses=statuses; this.authors=authors; this.patches=patches;
+        this.searchChanges=searchChanges;
     }
     public List<TaxonView> list(String kind, int page, int limit) {
         ApiResponses.validatePage(page,limit);
@@ -105,9 +107,12 @@ public class TaxonomyService {
     private void assignAuthor(Author a,AuthorWrite input) { a.setName(input.name()); a.setLocalName(input.local_name()); a.setAvatarUrl(input.avatar()); }
     @Transactional
     public AuthorView updateAuthor(UUID id,Map<String,Object> fields) {
-        var a=authors.findById(id).orElseThrow(ApiException::missing);
+        var a=authors.lockForRename(id).orElseThrow(ApiException::missing);
+        String previousName=a.getName();
         assignAuthor(a,patches.apply(new AuthorWrite(a.getName(),a.getLocalName(),a.getAvatarUrl()),fields,AuthorWrite.class));
-        return Views.author(authors.saveAndFlush(a));
+        authors.saveAndFlush(a);
+        if (!Objects.equals(previousName,a.getName())) searchChanges.author(id);
+        return Views.author(a);
     }
     @Transactional
     public void deleteAuthor(UUID id) { authors.delete(authors.findById(id).orElseThrow(ApiException::missing)); authors.flush(); }

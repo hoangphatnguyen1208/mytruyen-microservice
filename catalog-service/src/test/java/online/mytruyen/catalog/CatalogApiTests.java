@@ -33,6 +33,29 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         return mapper.readTree(response.body());
     }
     String unique() { return "test-"+UUID.randomUUID(); }
+    @org.springframework.beans.factory.annotation.Autowired online.mytruyen.catalog.service.BookService bookService;
+    long searchEvents(long id) {
+        return jdbc.queryForObject("select count(*) from search_outbox where book_id=?",Long.class,id);
+    }
+    @Test void searchInvalidationsCommitWithBooksAndAuthorRenames() throws Exception {
+        String admin=token("ROLE_ADMIN");
+        String author=expect(201,"POST","/authors",Map.of("name",unique()),admin).path("data").path("id").asText();
+        long id=chapterBook(unique(),true);
+        assertThat(searchEvents(id)).isEqualTo(1);
+        expect(200,"PATCH","/books/id/"+id,Map.of("author_id",author),admin);
+        assertThat(searchEvents(id)).isEqualTo(2);
+        expect(200,"PATCH","/authors/"+author,Map.of("name",unique()),admin);
+        assertThat(searchEvents(id)).isEqualTo(3);
+        new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(tx->{
+            bookService.update(id,Map.of("name","Must roll back"));
+            tx.setRollbackOnly();
+        });
+        assertThat(searchEvents(id)).isEqualTo(3);
+        expect(200,"PATCH","/books/id/"+id,Map.of("published",false),admin);
+        expect(200,"DELETE","/books/id/"+id,null,admin);
+        assertThat(searchEvents(id)).isEqualTo(5);
+        assertThat(jdbc.queryForObject("select count(*) from search_outbox where book_id=? and published_at is null",Long.class,id)).isEqualTo(5);
+    }
     long statistic(String resource, boolean admin) throws Exception {
         return expect(200,"GET",(admin ? "/admin/catalog" : "")+"/stats/"+resource+"/count",null,
             admin ? token("ROLE_ADMIN") : null).path("data").asLong();

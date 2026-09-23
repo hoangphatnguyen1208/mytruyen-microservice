@@ -22,6 +22,14 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:mytruyen}
     password: ${RABBITMQ_PASSWORD:mytruyen}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+
+catalog:
+  search-sync:
+    enabled: ${SEARCH_SYNC_ENABLED:false}
 
 management:
   endpoints:

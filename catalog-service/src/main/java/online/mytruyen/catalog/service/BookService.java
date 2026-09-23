@@ -28,11 +28,13 @@ public class BookService {
     private final BookContentStatsRepository stats;
     private final BookEngagementProjectionRepository engagement;
     private final Patches patches;
+    private final SearchChanges searchChanges;
     public BookService(BookRepository books, AuthorRepository authors, BookStatusRepository statuses,
             GenreRepository genres, TagRepository tags, BookContentStatsRepository stats,
-            BookEngagementProjectionRepository engagement, Patches patches) {
+            BookEngagementProjectionRepository engagement, Patches patches, SearchChanges searchChanges) {
         this.books=books; this.authors=authors; this.statuses=statuses; this.genres=genres;
         this.tags=tags; this.stats=stats; this.engagement=engagement; this.patches=patches;
+        this.searchChanges=searchChanges;
     }
     private Book get(Long id) {
         return books.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> ApiException.missing("Book not found"));
@@ -80,7 +82,7 @@ public class BookService {
             new ApiResponses.Pagination(page,limit,result.getTotalElements(),result.getTotalPages()));
     }
     private void assign(Book book, BookWrite input) {
-        book.setAuthor(input.author_id()==null ? null : authors.findById(input.author_id())
+        book.setAuthor(input.author_id()==null ? null : authors.lockForBookAssignment(input.author_id())
             .orElseThrow(() -> ApiException.missing("Author not found")));
         book.setStatus(statuses.findById(input.status_id()).orElseThrow(() -> ApiException.missing("Status not found")));
         var genreIds=new LinkedHashSet<>(input.genre_ids()==null ? List.<Long>of() : input.genre_ids());
@@ -104,6 +106,7 @@ public class BookService {
         Book book=new Book(); book.setCreatorId(creator); assign(book,input); books.saveAndFlush(book);
         BookContentStats content=new BookContentStats(); content.setBook(book); stats.save(content);
         BookEngagementProjection counters=new BookEngagementProjection(); counters.setBook(book); engagement.save(counters);
+        searchChanges.book(book.getId());
         return view(book);
     }
     @Transactional
@@ -114,7 +117,9 @@ public class BookService {
             book.getKind(),book.getSex(),book.getSynopsis(),book.getPoster(),book.getNote(),
             book.getChapterPerWeek(),book.isPublished(),book.getGenres().stream().map(Genre::getId).toList(),
             book.getTags().stream().map(Tag::getId).toList());
-        assign(book,patches.apply(current,fields,BookWrite.class)); books.flush(); return view(book);
+        assign(book,patches.apply(current,fields,BookWrite.class)); books.flush();
+        searchChanges.book(book.getId());
+        return view(book);
     }
     @Transactional
     public BookView updateSlug(String slug, Map<String,Object> fields) {
@@ -125,6 +130,7 @@ public class BookService {
     public void delete(Long id) {
         Book book=books.lockById(id).orElseThrow(() -> ApiException.missing("Book not found"));
         book.setDeletedAt(Instant.now()); book.setPublished(false); books.flush();
+        searchChanges.book(book.getId());
     }
     @Transactional
     public void deleteSlug(String slug) {
