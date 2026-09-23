@@ -8,7 +8,7 @@ Compared against mytruyen-be/app/api/v1/{book,chapter}.py, app/schema/{book,chap
 | Book sort=field / -field | Database ordering, explicit allowlist | Restored ASC/DESC semantics; deterministic ID tie-breaker |
 | Book lookup/write/delete by ID or slug | Existing BookController routes | Supported; delete is soft, slug remains reserved |
 | Book creation updates Meilisearch synchronously | No synchronous indexing | Not migrated yet; search/index synchronization is a remaining feature |
-| GET /books/topboxes?kind=&limit= | No implementation | Remaining external-source proxy feature; do not replace it silently with local ranking |
+| GET /books/topboxes?kind=&limit= | Catalog upstream proxy | Ported; raw JSON shape retained, bounded input/timeout, no redirects; upstream failures become 502/504 |
 | Chapter global/per-book lists, ID/slug lookup | Existing ChapterController routes | Supported; global default is book_id,index,id; per-book default index,id |
 | Chapter list by slug defaults limit=10 | Restored | ID-based list defaults limit=30; explicit limit works on either route |
 | Chapter create by parent ID/slug | Existing POST routes | Draft-only until content exists; create returns metadata instead of old null |
@@ -35,8 +35,8 @@ Book sorting is done in the database before pagination, including correlated loo
 
 ## Remaining migration work, feature-first
 
-1. Migrate text search and its book indexing behavior; define safe public results and keep index updates reliable.
-2. Migrate topboxes with an explicit upstream contract, bounded timeout/limit and error handling.
+1. Complete indexing/rebuild for text search. GET /search/meili read path is ported with ranked public Catalog batch hydration, but requires an existing matching index.
+2. Verify topboxes against the real upstream and frontend; tests currently use a local mock server.
 3. Migrate crawler/import commands, retaining source IDs through a dedicated import workflow rather than public client-writable IDs.
 4. Complete response compatibility/client adaptations listed above; add Gateway/frontend contract tests.
 5. Rehearse actual data import and PostgreSQL tests. Existing H2 tests do not prove PostgreSQL execution plans or locking.

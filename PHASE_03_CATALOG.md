@@ -42,4 +42,12 @@ Verification: 25 Catalog tests (17 HTTP/integration + 8 persistence) and bootJar
 
 See [Book/Chapter parity](docs/migration/book-chapter-parity.md) for unconverted features and intentional response differences. This is not complete frontend compatibility.
 
-Next, feature-first: migrate actual legacy text search/indexing and topboxes, then crawler/import; add only the event infrastructure required to keep these features reliable. PostgreSQL and frontend/Gateway contract checks remain deployment gates.
+## Legacy text-search read path and topboxes
+
+Ported GET /search/meili into Search: ID-only Meilisearch query, single public Catalog batch hydration, rank preservation and filtered draft/deleted records. Added GET /books/batch and ported /books/topboxes with the original upstream JSON shape and bounded timeout/input. Disabled hybrid/audio/YouTube features remain 503; dead ML code was not copied.
+
+Search requires an already-populated matching books index. Initial rebuild and automatic indexing are still unfinished. Estimated pagination totals retain legacy semantics and may exceed visible results when the index is stale.
+
+Verification: Catalog 30 tests and bootJar passed; Search 28 tests passed; Compose config validated. Dependency tests use local/mock servers, not real Meilisearch/topboxes; persistence tests still use H2.
+
+Next, feature-first: finish index rebuild/synchronization, then crawler/import. PostgreSQL, real upstream and frontend/Gateway contract checks remain deployment gates.

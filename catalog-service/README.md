@@ -75,7 +75,13 @@ Events cover ChapterCreated/Updated/Deleted/Published/Unpublished and ChapterCon
 
 Lists use page >= 1, limit 1–100 and allowlisted metadata sorts with ASC for unprefixed fields and DESC for '-'. Default global ordering is book_id/index/id; per-book ordering is index/id. Default limit is 10 for global/slug lists and 30 for ID-based lists. Missing/hidden parents return 404. Responses use the existing envelope; create now returns chapter metadata rather than null. Content responses identify chapter_id, not a separate legacy content ID. Chapter view/comment counters are omitted until Engagement is implemented. These differences require frontend contract checks before cutover.
 
-## Build and verification commands
+## Legacy search hydration and topboxes
+
+GET `/api/v1/books/batch?ids=3&ids=1` returns a response-envelope data array in requested order, deduplicated and limited to 1–100 positive IDs. Hidden/deleted/missing IDs are omitted. This is public metadata, not an internal privileged endpoint. Search uses it to avoid per-hit HTTP requests.
+
+GET `/api/v1/books/topboxes?kind=1&limit=10` retains the old external-source proxy and returns upstream JSON directly, without an added envelope. Kind must be nonnegative; limit is 1–100. The upstream endpoint is configuration-only: `catalog.topboxes.url` defaults to https://backend.metruyencv.com/api/topboxes; `catalog.topboxes.timeout-ms` defaults to 5000 (maximum 30000). No caller-controlled URL, credentials or redirects. HTTP/network/malformed JSON failures return sanitized 502; timeout returns 504. This does not query local ranking data, and upstream payloads are not rewritten. Tests use a local stub server, not the real source.
+
+## Build commands
 
 Use Java 17 and run `gradlew.bat test bootJar`. Tests execute the same Flyway V1/V2/V3 migrations on H2 PostgreSQL mode, then Hibernate schema validation. They cover JSON round-trip, relationships, constraints, visibility, deletion behavior, summary calculations and stale writes. Docker/PostgreSQL verification remains a deployment gate; H2 does not prove all PostgreSQL locking/planner behavior.
 
