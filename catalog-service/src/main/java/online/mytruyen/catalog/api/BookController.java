@@ -16,6 +16,8 @@ import java.util.*;
 public class BookController {
     private final BookService service;
     public BookController(BookService service) { this.service=service; }
+    @GetMapping("/books/batch")
+    public Response<List<BookView>> batch(@RequestParam List<Long> ids) { return Response.ok(service.batch(ids)); }
     @GetMapping("/books")
     public ApiResponses.Page<BookView> list(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="10") int limit, @RequestParam(required=false) Long status,

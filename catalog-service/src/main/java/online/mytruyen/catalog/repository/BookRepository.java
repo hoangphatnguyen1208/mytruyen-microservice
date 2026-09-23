@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.*;
 
 public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
+    @EntityGraph(attributePaths = {"author", "status"})
+    List<Book> findByIdInAndPublishedTrueAndDeletedAtIsNull(Collection<Long> ids);
     @Override
     @EntityGraph(attributePaths = {"author", "status"})
     Page<Book> findAll(org.springframework.data.jpa.domain.Specification<Book> specification, Pageable pageable);

@@ -33,6 +33,19 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         return mapper.readTree(response.body());
     }
     String unique() { return "test-"+UUID.randomUUID(); }
+    @Test void publicBookBatchPreservesRankAndHidesDrafts() throws Exception {
+        expect(400,"GET","/books/topboxes?kind=-1&limit=10",null,null);
+        expect(400,"GET","/books/topboxes?kind=1&limit=101",null,null);
+        String admin=token("ROLE_ADMIN");
+        long a=chapterBook(unique(),true),b=chapterBook(unique(),true),draft=chapterBook(unique(),false);
+        long deleted=chapterBook(unique(),true);
+        expect(200,"DELETE","/books/id/"+deleted,null,admin);
+        var response=expect(200,"GET","/books/batch?ids="+b+"&ids="+draft+"&ids="+a+"&ids="+b+"&ids="+deleted+"&ids=999999",null,null);
+        assertThat(ids(response)).containsExactly(b,a);
+        expect(400,"GET","/books/batch?ids=0",null,null);
+        expect(400,"GET","/books/batch?ids=invalid",null,null);
+        expect(400,"GET","/books/batch?"+String.join("&",Collections.nCopies(101,"ids=1")),null,null);
+    }
     List<Long> ids(JsonNode response) {
         var result=new ArrayList<Long>(); response.path("data").forEach(row->result.add(row.path("id").asLong())); return result;
     }

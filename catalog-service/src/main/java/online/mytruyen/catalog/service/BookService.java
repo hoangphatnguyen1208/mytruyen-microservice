@@ -49,6 +49,17 @@ public class BookService {
     public BookView bySlug(String slug) {
         return view(books.findPublicBySlug(slug).orElseThrow(() -> ApiException.missing("Book not found")));
     }
+    public List<BookView> batch(List<Long> ids) {
+        if (ids==null || ids.isEmpty() || ids.size()>100 || ids.stream().anyMatch(id->id==null || id<1))
+            throw new ApiException(400,"Supply between 1 and 100 positive book IDs");
+        var ordered=new LinkedHashSet<>(ids);
+        var found=books.findByIdInAndPublishedTrueAndDeletedAtIsNull(ordered).stream()
+            .collect(Collectors.toMap(Book::getId,b->b));
+        var content=stats.findAllById(ordered).stream().collect(Collectors.toMap(BookContentStats::getBookId,v->v));
+        var counters=engagement.findAllById(ordered).stream().collect(Collectors.toMap(BookEngagementProjection::getBookId,v->v));
+        return ordered.stream().filter(found::containsKey)
+            .map(id->Views.book(found.get(id),content.get(id),counters.get(id))).toList();
+    }
     public ApiResponses.Page<BookView> list(int page, int limit, Long status, String sort, boolean admin) {
         ApiResponses.validatePage(page, limit);
         var order=CatalogSorts.bookKey(sort);
