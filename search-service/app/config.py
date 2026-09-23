@@ -9,3 +9,5 @@ class Settings(BaseSettings):
     meili_index: str = Field(default="books", pattern=r"^[a-zA-Z0-9_-]+$", max_length=100)
     catalog_url: HttpUrl = "http://localhost:8082"
     request_timeout: float = Field(default=5.0, gt=0, le=30)
+    rabbitmq_url: SecretStr = SecretStr("amqp://guest:guest@localhost:5672/")
+    sync_task_timeout: float = Field(default=120, gt=0, le=600)
