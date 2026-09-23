@@ -19,13 +19,13 @@ public class BookController {
     @GetMapping("/books")
     public ApiResponses.Page<BookView> list(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="10") int limit, @RequestParam(required=false) Long status,
-            @RequestParam(defaultValue="created_at") String sort) {
+            @RequestParam(defaultValue="-created_at") String sort) {
         return service.list(page,limit,status,sort,false);
     }
     @GetMapping("/admin/catalog/books")
     public ApiResponses.Page<BookView> adminList(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="10") int limit, @RequestParam(required=false) Long status,
-            @RequestParam(defaultValue="created_at") String sort) {
+            @RequestParam(defaultValue="-created_at") String sort) {
         return service.list(page,limit,status,sort,true);
     }
     @GetMapping("/books/id/{id}")

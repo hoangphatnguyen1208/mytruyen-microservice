@@ -13,14 +13,14 @@ public class AdminChapterController {
     public AdminChapterController(ChapterService service) { this.service=service; }
     @GetMapping
     public ApiResponses.Page<View> all(@RequestParam(defaultValue="1") int page,
-            @RequestParam(defaultValue="10") int limit,@RequestParam(defaultValue="index") String sort) {
+            @RequestParam(defaultValue="10") int limit,@RequestParam(required=false) String sort) {
         return service.list(null,null,page,limit,sort,true);
     }
     @GetMapping("/{lookup:id|slug}/{key}")
     public ApiResponses.Page<View> list(@PathVariable String lookup,@PathVariable String key,
-            @RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="30") int limit,
-            @RequestParam(defaultValue="index") String sort) {
-        return service.list(lookup,key,page,limit,sort,true);
+            @RequestParam(defaultValue="1") int page,@RequestParam(required=false) Integer limit,
+            @RequestParam(required=false) String sort) {
+        return service.list(lookup,key,page,limit==null ? (lookup.equals("slug") ? 10 : 30) : limit,sort,true);
     }
     @GetMapping("/{lookup:id|slug}/{key}/{index}")
     public Response<View> detail(@PathVariable String lookup,@PathVariable String key,@PathVariable int index) {

@@ -7,6 +7,7 @@ import online.mytruyen.catalog.exception.ApiException;
 import online.mytruyen.catalog.mapper.ChapterViews;
 import online.mytruyen.catalog.repository.*;
 import online.mytruyen.catalog.support.Patches;
+import online.mytruyen.catalog.support.CatalogSorts;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.*;
@@ -56,12 +57,7 @@ public class ChapterService {
     public ApiResponses.Page<View> list(String lookup,String key,int page,int limit,String sort,boolean admin) {
         ApiResponses.validatePage(page,limit);
         Long bookId=key==null ? null : book(lookup,key,admin).getId();
-        Sort ordering=switch(sort) {
-            case "index" -> Sort.by("chapterIndex").and(Sort.by("id"));
-            case "-index" -> Sort.by(Sort.Direction.DESC,"chapterIndex").and(Sort.by("id"));
-            case "created_at" -> Sort.by(Sort.Direction.DESC,"createdAt").and(Sort.by("id"));
-            default -> throw new ApiException(400,"Unsupported chapter sort");
-        };
+        Sort ordering=CatalogSorts.chapter(sort,bookId==null);
         Specification<Chapter> filter=(root,query,cb)-> {
             var rules=new ArrayList<jakarta.persistence.criteria.Predicate>();
             rules.add(cb.isNull(root.get("deletedAt")));
@@ -103,9 +99,11 @@ public class ChapterService {
     @Transactional
     public View update(Long id,Map<String,Object> fields) {
         Chapter c=lock(id);
-        MetadataWrite next=patches.apply(new MetadataWrite(c.getChapterIndex(),c.getName()),fields,MetadataWrite.class);
+        MetadataWrite next=patches.apply(new MetadataWrite(c.getChapterIndex(),c.getName(),c.isPublished()),fields,MetadataWrite.class);
+        boolean transition=c.isPublished()!=next.published();
         c.setName(next.name()); c.setChapterIndex(next.index()); c.setUpdatedAt(Instant.now());
-        changes.record(c,"ChapterUpdated");
+        if (transition) publication(c,next.published());
+        changes.record(c,transition ? (next.published() ? "ChapterPublished" : "ChapterUnpublished") : "ChapterUpdated");
         return ChapterViews.chapter(c);
     }
     @Transactional
@@ -116,11 +114,8 @@ public class ChapterService {
     @Transactional
     public View publish(Long id) {
         Chapter c=lock(id);
-        ChapterContent content=contents.findById(id).orElseThrow(()->new ApiException(409,"Content required before publication"));
-        if (content.getContent().isBlank()) throw new ApiException(409,"Nonblank content required before publication");
         if (!c.isPublished()) {
-            assign(c,content,content.getContent());
-            c.setPublished(true); c.setPublishedAt(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+            publication(c,true);
             changes.record(c,"ChapterPublished");
         }
         return ChapterViews.chapter(c);
@@ -129,10 +124,19 @@ public class ChapterService {
     public View unpublish(Long id) {
         Chapter c=lock(id);
         if (c.isPublished()) {
-            c.setPublished(false); c.setPublishedAt(null);
+            publication(c,false);
             changes.record(c,"ChapterUnpublished");
         }
         return ChapterViews.chapter(c);
+    }
+    private void publication(Chapter c,boolean published) {
+        if (published) {
+            ChapterContent content=contents.findById(c.getId()).orElseThrow(()->new ApiException(409,"Content required before publication"));
+            if (content.getContent().isBlank()) throw new ApiException(409,"Nonblank content required before publication");
+            assign(c,content,content.getContent());
+            c.setPublishedAt(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        } else c.setPublishedAt(null);
+        c.setPublished(published);
     }
     private void assign(Chapter c,ChapterContent content,String text) {
         content.setContent(text);

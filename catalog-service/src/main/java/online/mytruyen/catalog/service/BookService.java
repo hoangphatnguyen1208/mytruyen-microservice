@@ -4,6 +4,7 @@ import online.mytruyen.catalog.dto.ApiResponses;
 import online.mytruyen.catalog.exception.ApiException;
 import online.mytruyen.catalog.mapper.Views;
 import online.mytruyen.catalog.support.Patches;
+import online.mytruyen.catalog.support.CatalogSorts;
 
 import online.mytruyen.catalog.dto.CatalogDtos.*;
 import online.mytruyen.catalog.domain.*;
@@ -50,22 +51,16 @@ public class BookService {
     }
     public ApiResponses.Page<BookView> list(int page, int limit, Long status, String sort, boolean admin) {
         ApiResponses.validatePage(page, limit);
-        String property=switch(sort) {
-            case "name" -> "name";
-            case "created_at" -> "createdAt";
-            case "updated_at" -> "updatedAt";
-            case "published_at" -> "publishedAt";
-            default -> throw new ApiException(400, "Unsupported sort");
-        };
+        var order=CatalogSorts.bookKey(sort);
         Specification<Book> filter=(root, query, cb) -> {
             var conditions=new ArrayList<jakarta.persistence.criteria.Predicate>();
             conditions.add(cb.isNull(root.get("deletedAt")));
             if (!admin) conditions.add(cb.isTrue(root.get("published")));
             if (status != null) conditions.add(cb.equal(root.get("status").get("id"), status));
+            CatalogSorts.orderBooks(root,query,cb,order);
             return cb.and(conditions.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
-        var result=books.findAll(filter, PageRequest.of(page-1, limit,
-            Sort.by(Sort.Direction.DESC, property).and(Sort.by("id"))));
+        var result=books.findAll(filter, PageRequest.of(page-1, limit));
         var ids=result.getContent().stream().map(Book::getId).toList();
         var content=stats.findAllById(ids).stream().collect(Collectors.toMap(BookContentStats::getBookId, v->v));
         var counters=engagement.findAllById(ids).stream().collect(Collectors.toMap(BookEngagementProjection::getBookId, v->v));
