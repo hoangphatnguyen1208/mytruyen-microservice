@@ -9,7 +9,7 @@ This repository is being migrated from `mytruyen-be` with a strangler-style, ser
 | `mytruyen-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
 | `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Implemented; local integration tests, PostgreSQL deployment pending |
 | `catalog-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | CRUD + chapter publication/statistics/outbox; event delivery next |
-| `search-service` | Python 3.12 / FastAPI | Search API and search projections | Legacy text-search read path; index rebuild/synchronization pending |
+| `search-service` | Python 3.12 / FastAPI | Search API and search projections | Text search + offline staged rebuild; automatic synchronization pending |
 | `ingestion-worker` | Python 3.12 | Crawl/import commands and data normalization | Walking skeleton |
 | `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 

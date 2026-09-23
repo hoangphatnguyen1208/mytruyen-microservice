@@ -35,7 +35,7 @@ Book sorting is done in the database before pagination, including correlated loo
 
 ## Remaining migration work, feature-first
 
-1. Complete indexing/rebuild for text search. GET /search/meili read path is ported with ranked public Catalog batch hydration, but requires an existing matching index.
+1. Complete automatic indexing for text search. GET /search/meili read path and offline staged rebuild are implemented; ongoing changes still require manual rebuild under paused writes.
 2. Verify topboxes against the real upstream and frontend; tests currently use a local mock server.
 3. Migrate crawler/import commands, retaining source IDs through a dedicated import workflow rather than public client-writable IDs.
 4. Complete response compatibility/client adaptations listed above; add Gateway/frontend contract tests.

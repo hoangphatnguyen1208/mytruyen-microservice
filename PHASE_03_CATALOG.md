@@ -50,4 +50,10 @@ Search requires an already-populated matching books index. Initial rebuild and a
 
 Verification: Catalog 30 tests and bootJar passed; Search 28 tests passed; Compose config validated. Dependency tests use local/mock servers, not real Meilisearch/topboxes; persistence tests still use H2.
 
-Next, feature-first: finish index rebuild/synchronization, then crawler/import. PostgreSQL, real upstream and frontend/Gateway contract checks remain deployment gates.
+## Offline search-index rebuild
+
+Added python -m app.rebuild for maintenance-window index seeding/replacement. The operator must pause Catalog and competing index writes. The command batches public books in ID order, waits for Meilisearch tasks, validates staging count, swaps only after success and retains the previous index. Empty datasets require an explicit flag; uncertain swap outcomes are never blindly retried.
+
+Search tests now cover new/existing index rebuild, settings preservation, null authors, multiple pages, failed tasks, changed totals, document limits, empty-index protection and ambiguous swap timeout. Tests use mock HTTP, not real Meilisearch. See search-service/README.md for the runbook.
+
+Next, feature-first: automatic index synchronization, then crawler/import. PostgreSQL, real upstream and frontend/Gateway contract checks remain deployment gates.
