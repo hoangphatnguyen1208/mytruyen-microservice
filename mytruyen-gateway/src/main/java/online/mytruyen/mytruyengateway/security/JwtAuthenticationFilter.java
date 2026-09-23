@@ -34,7 +34,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v1/tags",
             "/api/v1/authors",
             "/api/v1/book-statuses",
-            "/api/v1/search"
+            "/api/v1/search",
+            "/api/v1/stats"
     );
 
     private final JwtProperties properties;

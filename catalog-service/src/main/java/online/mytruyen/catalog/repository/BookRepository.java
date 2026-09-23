@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.*;
 
 public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
+    @Query("select count(b) from Book b where b.deletedAt is null and (:admin = true or b.published = true)")
+    long countVisible(@Param("admin") boolean admin);
     @EntityGraph(attributePaths = {"author", "status"})
     List<Book> findByIdInAndPublishedTrueAndDeletedAtIsNull(Collection<Long> ids);
     @Override

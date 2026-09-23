@@ -33,6 +33,41 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         return mapper.readTree(response.body());
     }
     String unique() { return "test-"+UUID.randomUUID(); }
+    long statistic(String resource, boolean admin) throws Exception {
+        return expect(200,"GET",(admin ? "/admin/catalog" : "")+"/stats/"+resource+"/count",null,
+            admin ? token("ROLE_ADMIN") : null).path("data").asLong();
+    }
+    @Test void statisticsRespectParentVisibilityDeletionAndAdminRole() throws Exception {
+        String admin=token("ROLE_ADMIN");
+        for (String resource:List.of("books","chapters","chapter_content")) {
+            expect(401,"GET","/admin/catalog/stats/"+resource+"/count",null,null);
+            expect(403,"GET","/admin/catalog/stats/"+resource+"/count",null,token("ROLE_USER"));
+        }
+        long publicBooks=statistic("books",false), allBooks=statistic("books",true);
+        long publicChapters=statistic("chapters",false), allChapters=statistic("chapters",true);
+        long publicContents=statistic("chapter_content",false), allContents=statistic("chapter_content",true);
+        long b=chapterBook(unique(),false), c=chapter(b,1);
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","Test content"),admin);
+        expect(200,"POST","/chapters/id/"+c+"/publish",null,admin);
+        assertThat(statistic("books",false)).isEqualTo(publicBooks);
+        assertThat(statistic("chapters",false)).isEqualTo(publicChapters);
+        assertThat(statistic("chapter_content",false)).isEqualTo(publicContents);
+        assertThat(statistic("books",true)).isEqualTo(allBooks+1);
+        assertThat(statistic("chapters",true)).isEqualTo(allChapters+1);
+        assertThat(statistic("chapter_content",true)).isEqualTo(allContents+1);
+        expect(200,"PATCH","/books/id/"+b,Map.of("published",true),admin);
+        assertThat(statistic("books",false)).isEqualTo(publicBooks+1);
+        assertThat(statistic("chapters",false)).isEqualTo(publicChapters+1);
+        assertThat(statistic("chapter_content",false)).isEqualTo(publicContents+1);
+        expect(200,"POST","/chapters/id/"+c+"/unpublish",null,admin);
+        assertThat(statistic("chapters",false)).isEqualTo(publicChapters);
+        assertThat(statistic("chapter_content",false)).isEqualTo(publicContents);
+        expect(200,"DELETE","/books/id/"+b,null,admin);
+        assertThat(statistic("books",true)).isEqualTo(allBooks);
+        assertThat(statistic("chapters",true)).isEqualTo(allChapters);
+        assertThat(statistic("chapter_content",true)).isEqualTo(allContents);
+        expect(404,"GET","/stats/unknown/count",null,null);
+    }
     @Test void publicBookBatchPreservesRankAndHidesDrafts() throws Exception {
         expect(400,"GET","/books/topboxes?kind=-1&limit=10",null,null);
         expect(400,"GET","/books/topboxes?kind=1&limit=101",null,null);

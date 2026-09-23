@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.*;
 
 public interface ChapterRepository extends JpaRepository<Chapter, Long>, JpaSpecificationExecutor<Chapter> {
+    @Query("select count(c) from Chapter c where c.deletedAt is null and c.book.deletedAt is null and (:admin = true or (c.published = true and c.book.published = true))")
+    long countVisible(@Param("admin") boolean admin);
     @Query("select c.book.id from Chapter c where c.id = :id and c.deletedAt is null")
     Optional<Long> findBookId(@Param("id") Long id);
     Optional<Chapter> findByBookIdAndChapterIndexAndDeletedAtIsNull(Long bookId, int chapterIndex);
