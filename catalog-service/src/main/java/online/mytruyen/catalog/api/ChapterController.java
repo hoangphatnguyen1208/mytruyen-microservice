@@ -39,6 +39,10 @@ public class ChapterController {
     public Response<View> update(@PathVariable Long id,@RequestBody Map<String,Object> input) {
         return Response.ok(service.update(id,input));
     }
+    @PostMapping("/id/{id}/publish")
+    public Response<View> publish(@PathVariable Long id) { return Response.ok(service.publish(id)); }
+    @PostMapping("/id/{id}/unpublish")
+    public Response<View> unpublish(@PathVariable Long id) { return Response.ok(service.unpublish(id)); }
     // Legacy /slug/{id} DELETE also takes a chapter ID, not a book slug.
     @DeleteMapping({"/id/{id}","/slug/{id}"})
     public Response<Void> delete(@PathVariable Long id) { service.delete(id); return Response.ok(null); }

@@ -25,8 +25,10 @@ public class ChapterService {
     private final ChapterRepository chapters;
     private final ChapterContentRepository contents;
     private final Patches patches;
-    public ChapterService(BookRepository books, ChapterRepository chapters, ChapterContentRepository contents, Patches patches) {
+    private final ChapterChanges changes;
+    public ChapterService(BookRepository books, ChapterRepository chapters, ChapterContentRepository contents, Patches patches, ChapterChanges changes) {
         this.books=books; this.chapters=chapters; this.contents=contents; this.patches=patches;
+        this.changes=changes;
     }
     private Book book(String lookup,String key,boolean admin) {
         Book b;
@@ -76,39 +78,61 @@ public class ChapterService {
             new ApiResponses.Pagination(page,limit,result.getTotalElements(),result.getTotalPages()));
     }
     private Book lockBook(Long id) { return books.lockById(id).orElseThrow(ApiException::missing); }
-    private void draft(Chapter c) {
-        if (c.isPublished()) throw new ApiException(409,"Published chapter is read-only until the publication workflow is available");
-    }
     // Every writer locks parent before child. The initial lookup is scalar, not a managed stale chapter.
     private Chapter lock(Long id) {
         Long bookId=chapters.findBookId(id).orElseThrow(ApiException::missing);
         lockBook(bookId);
         Chapter c=chapters.lockById(id).orElseThrow(ApiException::missing);
-        draft(c); return c;
+        return c;
     }
     private Chapter lock(String lookup,String key,int index) {
         Book b=lockBook(book(lookup,key,true).getId());
         Chapter c=chapter(b,index,true);
         c=chapters.lockById(c.getId()).orElseThrow(ApiException::missing);
-        draft(c); return c;
+        return c;
     }
     @Transactional
     public View create(String lookup,String key,Write input,UUID creator) {
         Book b=lockBook(book(lookup,key,true).getId());
         Chapter c=new Chapter(); c.setBook(b); c.setCreatorId(creator);
         c.setChapterIndex(input.index()); c.setName(input.name());
-        return ChapterViews.chapter(chapters.saveAndFlush(c));
+        chapters.saveAndFlush(c);
+        changes.record(c,"ChapterCreated");
+        return ChapterViews.chapter(c);
     }
     @Transactional
     public View update(Long id,Map<String,Object> fields) {
         Chapter c=lock(id);
-        Write next=patches.apply(new Write(c.getChapterIndex(),c.getName(),false),fields,Write.class);
-        c.setName(next.name()); c.setChapterIndex(next.index()); chapters.flush();
+        MetadataWrite next=patches.apply(new MetadataWrite(c.getChapterIndex(),c.getName()),fields,MetadataWrite.class);
+        c.setName(next.name()); c.setChapterIndex(next.index()); c.setUpdatedAt(Instant.now());
+        changes.record(c,"ChapterUpdated");
         return ChapterViews.chapter(c);
     }
     @Transactional
     public void delete(Long id) {
-        Chapter c=lock(id); c.setDeletedAt(Instant.now()); chapters.flush();
+        Chapter c=lock(id); c.setDeletedAt(Instant.now()); c.setPublished(false); c.setPublishedAt(null);
+        changes.record(c,"ChapterDeleted");
+    }
+    @Transactional
+    public View publish(Long id) {
+        Chapter c=lock(id);
+        ChapterContent content=contents.findById(id).orElseThrow(()->new ApiException(409,"Content required before publication"));
+        if (content.getContent().isBlank()) throw new ApiException(409,"Nonblank content required before publication");
+        if (!c.isPublished()) {
+            assign(c,content,content.getContent());
+            c.setPublished(true); c.setPublishedAt(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+            changes.record(c,"ChapterPublished");
+        }
+        return ChapterViews.chapter(c);
+    }
+    @Transactional
+    public View unpublish(Long id) {
+        Chapter c=lock(id);
+        if (c.isPublished()) {
+            c.setPublished(false); c.setPublishedAt(null);
+            changes.record(c,"ChapterUnpublished");
+        }
+        return ChapterViews.chapter(c);
     }
     private void assign(Chapter c,ChapterContent content,String text) {
         content.setContent(text);
@@ -123,19 +147,23 @@ public class ChapterService {
         Chapter c=lock(lookup,key,index);
         if(contents.existsById(c.getId())) throw new ApiException(409,"Chapter content already exists");
         ChapterContent content=new ChapterContent(); content.setChapter(c); assign(c,content,input.content());
-        return ChapterViews.content(contents.saveAndFlush(content));
+        contents.saveAndFlush(content); changes.record(c,"ChapterContentCreated");
+        return ChapterViews.content(content);
     }
     @Transactional
     public ContentView updateContent(String lookup,String key,int index,Map<String,Object> fields) {
         Chapter c=lock(lookup,key,index);
         ChapterContent content=contents.findById(c.getId()).orElseThrow(ApiException::missing);
         ContentWrite next=patches.apply(new ContentWrite(content.getContent()),fields,ContentWrite.class);
-        assign(c,content,next.content()); contents.flush(); return ChapterViews.content(content);
+        assign(c,content,next.content()); contents.flush(); changes.record(c,"ChapterContentUpdated");
+        return ChapterViews.content(content);
     }
     @Transactional
     public void deleteContent(String lookup,String key,int index) {
         Chapter c=lock(lookup,key,index);
+        if (c.isPublished()) throw new ApiException(409,"Unpublish chapter before deleting its content");
         ChapterContent content=contents.findById(c.getId()).orElseThrow(ApiException::missing);
         contents.delete(content); c.setWordCount(0); c.setUpdatedAt(Instant.now()); contents.flush();
+        changes.record(c,"ChapterContentDeleted");
     }
 }

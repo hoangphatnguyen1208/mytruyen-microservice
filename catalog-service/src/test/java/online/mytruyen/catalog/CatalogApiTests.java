@@ -33,6 +33,87 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         return mapper.readTree(response.body());
     }
     String unique() { return "test-"+UUID.randomUUID(); }
+    long events(long id) { return jdbc.queryForObject("select count(*) from catalog_outbox where aggregate_id=?",Long.class,id); }
+    JsonNode counters(long bookId) throws Exception {
+        return expect(200,"GET","/admin/catalog/books/id/"+bookId,null,token("ROLE_ADMIN")).path("data");
+    }
+    void counts(long bookId,long chapters,long words,Integer latest) throws Exception {
+        var data=counters(bookId);
+        assertThat(data.path("chapter_count").asLong()).isEqualTo(chapters);
+        assertThat(data.path("word_count").asLong()).isEqualTo(words);
+        if (latest==null) assertThat(data.path("latest_chapter").isNull()).isTrue();
+        else assertThat(data.path("latest_chapter").asInt()).isEqualTo(latest);
+    }
+    @Test void publicationMaintainsStatsAndIdempotentEvents() throws Exception {
+        String admin=token("ROLE_ADMIN"); long b=chapterBook(unique(),true);
+        long one=chapter(b,1),two=chapter(b,2);
+        expect(409,"POST","/chapters/id/"+one+"/publish",null,admin);
+        assertThat(events(one)).isEqualTo(1);
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","One two"),admin);
+        expect(201,"POST","/chapters/content/id/"+b+"/2",Map.of("content","Three four five"),admin);
+        counts(b,0,0,null);
+        expect(401,"POST","/chapters/id/"+one+"/publish",null,null);
+        expect(403,"POST","/chapters/id/"+one+"/publish",null,token("ROLE_USER"));
+        var first=expect(200,"POST","/chapters/id/"+one+"/publish",null,admin).path("data");
+        long before=events(one);
+        var again=expect(200,"POST","/chapters/id/"+one+"/publish",null,admin).path("data");
+        assertThat(again.path("version").asLong()).isEqualTo(first.path("version").asLong());
+        assertThat(again.path("published_at").asText()).isEqualTo(first.path("published_at").asText());
+        assertThat(events(one)).isEqualTo(before); counts(b,1,2,1);
+        expect(200,"POST","/chapters/id/"+two+"/publish",null,admin); counts(b,2,5,2);
+        expect(200,"PATCH","/chapters/content/id/"+b+"/2",Map.of("content","Changed"),admin); counts(b,2,3,2);
+        expect(200,"PATCH","/chapters/id/"+two,Map.of("index",4),admin); counts(b,2,3,4);
+        long failuresBefore=events(two);
+        expect(409,"PATCH","/chapters/id/"+two,Map.of("index",1),admin);
+        assertThat(events(two)).isEqualTo(failuresBefore); counts(b,2,3,4);
+        expect(200,"POST","/chapters/id/"+two+"/unpublish",null,admin); counts(b,1,2,1);
+        long unpublishedEvents=events(two);
+        expect(200,"POST","/chapters/id/"+two+"/unpublish",null,admin);
+        assertThat(events(two)).isEqualTo(unpublishedEvents);
+        expect(404,"GET","/chapters/id/"+b+"/4",null,null);
+        expect(200,"POST","/chapters/id/"+two+"/publish",null,admin); counts(b,2,3,4);
+        expect(200,"DELETE","/chapters/id/"+two,null,admin); counts(b,1,2,1);
+        expect(200,"POST","/chapters/id/"+one+"/unpublish",null,admin); counts(b,0,0,null);
+        assertThat(counters(b).path("new_chap_at").isNull()).isTrue();
+        expect(200,"DELETE","/chapters/content/id/"+b+"/1",null,admin);
+        expect(409,"POST","/chapters/id/"+one+"/publish",null,admin);
+        var rows=jdbc.queryForList("select aggregate_version,payload,published_at,correlation_id from catalog_outbox where aggregate_id=? order by aggregate_version",one);
+        long previous=-1;
+        for(var row:rows) {
+            long version=((Number)row.get("AGGREGATE_VERSION")).longValue();
+            assertThat(version).isGreaterThan(previous); previous=version;
+            assertThat(row.get("PUBLISHED_AT")).isNull();
+            assertThat(row.get("CORRELATION_ID")).isNotNull();
+            assertThat(mapper.readTree(row.get("PAYLOAD").toString()).path("book_id").asLong()).isEqualTo(b);
+        }
+    }
+    @Test void concurrentPublicationsKeepCombinedStatistics() throws Exception {
+        String admin=token("ROLE_ADMIN"); long b=chapterBook(unique(),true),one=chapter(b,1),two=chapter(b,2);
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","One two"),admin);
+        expect(201,"POST","/chapters/content/id/"+b+"/2",Map.of("content","Three"),admin);
+        var pool=java.util.concurrent.Executors.newFixedThreadPool(2);
+        var start=new java.util.concurrent.CountDownLatch(1);
+        try {
+            var a=pool.submit(()->{start.await();return request("POST","/chapters/id/"+one+"/publish",null,admin).statusCode();});
+            var z=pool.submit(()->{start.await();return request("POST","/chapters/id/"+two+"/publish",null,admin).statusCode();});
+            start.countDown();
+            assertThat(a.get(30,java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(200);
+            assertThat(z.get(30,java.util.concurrent.TimeUnit.SECONDS)).isEqualTo(200);
+        } finally { pool.shutdownNow(); }
+        counts(b,2,3,2);
+    }
+    @org.springframework.beans.factory.annotation.Autowired online.mytruyen.catalog.service.ChapterService chapterService;
+    @org.springframework.beans.factory.annotation.Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+    @Test void rolledBackPublicationLeavesNoStatsOrOutboxChange() throws Exception {
+        String admin=token("ROLE_ADMIN"); long b=chapterBook(unique(),true),id=chapter(b,1);
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","Rollback text"),admin);
+        long before=events(id);
+        new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(tx->{
+            chapterService.publish(id); tx.setRollbackOnly();
+        });
+        counts(b,0,0,null); assertThat(events(id)).isEqualTo(before);
+        assertThat(expect(200,"GET","/admin/catalog/chapters/id/"+b+"/1",null,admin).path("data").path("published").asBoolean()).isFalse();
+    }
     long chapterBook(String slug, boolean published) throws Exception {
         var input=book(taxon("book-statuses",unique()),slug); input.put("published",published);
         return expect(201,"POST","/books",input,token("ROLE_ADMIN")).path("data").path("id").asLong();
@@ -106,16 +187,14 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         String admin=token("ROLE_ADMIN"),slug=unique(); long bookId=chapterBook(slug,true),id=chapter(bookId,1);
         String content="/chapters/content/id/"+bookId+"/1";
         expect(201,"POST",content,Map.of("content","Public text"),admin);
-        // Fixture only: HTTP publication will be implemented in the next stage.
-        jdbc.update("update chapters set published=true,published_at=CURRENT_TIMESTAMP where id=?",id);
+        expect(200,"POST","/chapters/id/"+id+"/publish",null,admin);
         expect(200,"GET","/chapters/id/"+bookId+"/1",null,null);
         expect(200,"GET","/chapters/slug/"+slug+"/1",null,null);
         expect(200,"GET",content,null,null);
         expect(200,"GET","/chapters/content/slug/"+slug+"/1",null,null);
         assertThat(expect(200,"GET","/chapters/id/"+bookId,null,null).path("pagination").path("total_items").asLong()).isEqualTo(1);
-        expect(409,"PATCH","/chapters/id/"+id,Map.of("name","Blocked"),admin);
-        expect(409,"DELETE","/chapters/id/"+id,null,admin);
-        expect(409,"PATCH",content,Map.of("content","Blocked"),admin);
+        expect(200,"PATCH","/chapters/id/"+id,Map.of("name","Published edit"),admin);
+        expect(200,"PATCH",content,Map.of("content","Updated public content"),admin);
         expect(409,"DELETE",content,null,admin);
         expect(200,"PATCH","/books/id/"+bookId,Map.of("published",false),admin);
         expect(404,"GET",content,null,null);
