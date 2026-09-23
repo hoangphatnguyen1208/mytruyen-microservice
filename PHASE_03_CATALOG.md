@@ -20,6 +20,16 @@ Added HTTP tests for draft/content lifecycle, validation/permissions, rollback, 
 
 Verification for phase 03c: Catalog test + bootJar succeeded with 19 tests (11 HTTP + 8 persistence), zero failures. Gateway route/configuration was unchanged: its existing chapters and admin/catalog prefixes already cover these endpoints.
 
-No import operation, chapter publish workflow, outbox relay or Engagement consumer has been implemented yet. This is intentionally a small stage, not completion of the full Catalog migration. No production data has been changed.
+## Phase 03d — publication, statistics and transactional outbox
 
-Next: chapter publish/unpublish and published edits/deletion with transactional stats and versioned outbox writes. Then add relay/consumers and rehearse ID-preserving import and PostgreSQL/Docker deployment.
+Added ADMIN publish/unpublish endpoints with required content and idempotent state transitions. Published metadata/content edits and soft deletion now update book statistics atomically. Removing published content requires unpublishing first. Publication under a draft parent remains hidden publicly.
+
+V3 adds catalog_outbox; all chapter commands record versioned change notifications in the same transaction as the chapter/content and recomputed statistics. Events have no content text. Relay, book/taxonomy events, propagated HTTP correlation and consumers remain deferred; this is not yet search integration.
+
+Tests cover publication lifecycle, combined statistics under concurrent sibling publication, failed-command rollback, explicit transaction rollback and event versions/idempotency. Test database remains H2 PostgreSQL mode, not real PostgreSQL.
+
+Verification: Catalog test + bootJar passed with 22 tests (14 HTTP/integration + 8 persistence), zero failures. Flyway V1/V2/V3 and Hibernate schema validation run in these tests. PostgreSQL deployment/concurrency verification is still required.
+
+No import operation, outbox relay or Engagement consumer has been implemented yet. This is intentionally a small stage, not completion of the full Catalog migration. No production data has been changed.
+
+Next: complete book/taxonomy event coverage and event contracts, then add relay/Search consumers and rehearse ID-preserving import and PostgreSQL/Docker deployment.
