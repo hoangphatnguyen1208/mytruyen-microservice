@@ -15,7 +15,7 @@ public class ApiErrors {
     @ExceptionHandler(ApiException.class)
     ResponseEntity<?> domain(ApiException e) { return error(e.status, e.getMessage()); }
     @ExceptionHandler(DataIntegrityViolationException.class)
-    ResponseEntity<?> conflict() { return error(409, "Duplicate slug or resource still referenced"); }
+    ResponseEntity<?> conflict() { return error(409, "Duplicate value or resource still referenced"); }
     @ExceptionHandler(OptimisticLockingFailureException.class)
     ResponseEntity<?> stale() { return error(409, "Resource changed; reload and retry"); }
     @ExceptionHandler({MethodArgumentNotValidException.class, MethodArgumentTypeMismatchException.class,
