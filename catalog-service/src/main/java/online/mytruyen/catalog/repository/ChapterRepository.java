@@ -8,7 +8,9 @@ import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.*;
 
-public interface ChapterRepository extends JpaRepository<Chapter, Long> {
+public interface ChapterRepository extends JpaRepository<Chapter, Long>, JpaSpecificationExecutor<Chapter> {
+    @Query("select c.book.id from Chapter c where c.id = :id and c.deletedAt is null")
+    Optional<Long> findBookId(@Param("id") Long id);
     Optional<Chapter> findByBookIdAndChapterIndexAndDeletedAtIsNull(Long bookId, int chapterIndex);
 
     @Query("select c from Chapter c where c.book.id = :bookId and c.published = true and c.deletedAt is null and c.book.published = true and c.book.deletedAt is null")
