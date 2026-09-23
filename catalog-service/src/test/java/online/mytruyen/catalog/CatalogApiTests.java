@@ -33,6 +33,88 @@ class CatalogApiTests extends CatalogJwtTestSupport {
         return mapper.readTree(response.body());
     }
     String unique() { return "test-"+UUID.randomUUID(); }
+    List<Long> ids(JsonNode response) {
+        var result=new ArrayList<Long>(); response.path("data").forEach(row->result.add(row.path("id").asLong())); return result;
+    }
+    @Test void legacyBookSortsUseDatabaseCountersAndStablePages() throws Exception {
+        String admin=token("ROLE_ADMIN"); long status=taxon("book-statuses",unique());
+        var created=new ArrayList<Long>();
+        for (String name:List.of("Alpha","Beta","Gamma")) {
+            var input=book(status,unique()); input.put("name",name); input.put("published",true);
+            created.add(expect(201,"POST","/books",input,admin).path("data").path("id").asLong());
+        }
+        long a=created.get(0),b=created.get(1),c=created.get(2);
+        jdbc.update("update book_content_stats set chapter_count=2,word_count=20,latest_chapter_index=4,new_chap_at=TIMESTAMP WITH TIME ZONE '2020-01-01 00:00:00+00' where book_id=?",a);
+        jdbc.update("update book_content_stats set chapter_count=1,word_count=10,latest_chapter_index=2,new_chap_at=TIMESTAMP WITH TIME ZONE '2021-01-01 00:00:00+00' where book_id=?",b);
+        jdbc.update("delete from book_content_stats where book_id=?",c);
+        jdbc.update("update book_engagement_projection set view_count=10,review_count=2,rating_sum=9,comment_count=1,bookmark_count=1 where book_id=?",a);
+        jdbc.update("update book_engagement_projection set view_count=20,review_count=4,rating_sum=12,comment_count=2,bookmark_count=2 where book_id=?",b);
+        jdbc.update("delete from book_engagement_projection where book_id=?",c);
+        expect(201,"POST","/books",book(status,unique()),admin); // Draft must not affect totals or ordering.
+        String path="/books?status="+status+"&sort=";
+        assertThat(ids(expect(200,"GET",path+"name",null,null))).containsExactly(a,b,c);
+        assertThat(ids(expect(200,"GET",path+"-name",null,null))).containsExactly(c,b,a);
+        for(String field:List.of("word_count","chapter_count"))
+            assertThat(ids(expect(200,"GET",path+"-"+field,null,null))).containsExactly(a,b,c);
+        for(String field:List.of("view_count","review_count","comment_count","bookmark_count"))
+            assertThat(ids(expect(200,"GET",path+field,null,null))).containsExactly(c,a,b);
+        assertThat(ids(expect(200,"GET",path+"-average_rating",null,null))).containsExactly(a,b,c);
+        assertThat(ids(expect(200,"GET",path+"average_rating",null,null))).containsExactly(c,b,a);
+        assertThat(ids(expect(200,"GET",path+"new_chap_at",null,null))).containsExactly(a,b,c);
+        assertThat(ids(expect(200,"GET",path+"-new_chap_at",null,null))).containsExactly(b,a,c);
+        assertThat(ids(expect(200,"GET",path+"latest_chapter",null,null))).containsExactly(b,a,c);
+        var page=expect(200,"GET",path+"-word_count&limit=1&page=2",null,null);
+        assertThat(ids(page)).containsExactly(b);
+        assertThat(page.path("pagination").path("total_items").asLong()).isEqualTo(3);
+        assertThat(ids(expect(200,"GET",path+"kind",null,null))).containsExactly(a,b,c);
+        for(String field:List.of("id","slug","sex","status_id","chapter_per_week","published","created_at","updated_at","published_at"))
+            expect(200,"GET",path+"-"+field,null,null);
+        expect(400,"GET",path+"author.name",null,null);
+        expect(400,"GET",path+"--name",null,null);
+    }
+    @Test void legacyChapterSortingAndSlugPagination() throws Exception {
+        String admin=token("ROLE_ADMIN"),slug=unique(); long b=chapterBook(slug,true),a=chapter(b,1),z=chapter(b,2);
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","One two three"),admin);
+        expect(201,"POST","/chapters/content/id/"+b+"/2",Map.of("content","One"),admin);
+        expect(200,"POST","/chapters/id/"+a+"/publish",null,admin);
+        expect(200,"POST","/chapters/id/"+z+"/publish",null,admin);
+        String path="/chapters/id/"+b+"?sort=";
+        assertThat(ids(expect(200,"GET",path+"word_count",null,null))).containsExactly(z,a);
+        assertThat(ids(expect(200,"GET",path+"-word_count",null,null))).containsExactly(a,z);
+        assertThat(ids(expect(200,"GET",path+"name",null,null))).containsExactly(a,z);
+        assertThat(ids(expect(200,"GET",path+"-name",null,null))).containsExactly(z,a);
+        for(String field:List.of("id","book_id","index","created_at","updated_at","published_at","published"))
+            expect(200,"GET",path+"-"+field,null,null);
+        assertThat(expect(200,"GET","/chapters/slug/"+slug,null,null).path("pagination").path("size").asInt()).isEqualTo(10);
+        assertThat(expect(200,"GET","/chapters/id/"+b,null,null).path("pagination").path("size").asInt()).isEqualTo(30);
+        var all=expect(200,"GET","/chapters?limit=100",null,null).path("data");
+        long previousBook=-1; int previousIndex=-1;
+        for(var row:all) {
+            long bookId=row.path("book_id").asLong(); int index=row.path("index").asInt();
+            assertThat(bookId).isGreaterThanOrEqualTo(previousBook);
+            if(bookId==previousBook) assertThat(index).isGreaterThanOrEqualTo(previousIndex);
+            previousBook=bookId; previousIndex=index;
+        }
+        expect(400,"GET",path+"content",null,null);
+    }
+    @Test void legacyPublishedPatchKeepsValidationAndAtomicStatistics() throws Exception {
+        String admin=token("ROLE_ADMIN"); long b=chapterBook(unique(),true),id=chapter(b,1);
+        String path="/chapters/id/"+id;
+        long before=events(id);
+        expect(409,"PATCH",path,Map.of("published",true,"name","Must roll back"),admin);
+        assertThat(events(id)).isEqualTo(before);
+        assertThat(expect(200,"GET","/admin/catalog/chapters/id/"+b+"/1",null,admin).path("data").path("name").asText()).isEqualTo("Chapter 1");
+        expect(201,"POST","/chapters/content/id/"+b+"/1",Map.of("content","Two words"),admin);
+        expect(403,"PATCH",path,Map.of("published",true),token("ROLE_USER"));
+        expect(200,"PATCH",path,Map.of("published",true,"name","Published via legacy PATCH"),admin);
+        counts(b,1,2,1);
+        expect(200,"GET","/chapters/id/"+b+"/1",null,null);
+        expect(400,"PATCH",path,Collections.singletonMap("published",null),admin);
+        expect(200,"PATCH",path,Map.of("published",false,"index",3),admin);
+        counts(b,0,0,null);
+        expect(404,"GET","/chapters/id/"+b+"/3",null,null);
+        assertThat(jdbc.queryForObject("select event_type from catalog_outbox where aggregate_id=? order by aggregate_version desc limit 1",String.class,id)).isEqualTo("ChapterUnpublished");
+    }
     long events(long id) { return jdbc.queryForObject("select count(*) from catalog_outbox where aggregate_id=?",Long.class,id); }
     JsonNode counters(long bookId) throws Exception {
         return expect(200,"GET","/admin/catalog/books/id/"+bookId,null,token("ROLE_ADMIN")).path("data");
