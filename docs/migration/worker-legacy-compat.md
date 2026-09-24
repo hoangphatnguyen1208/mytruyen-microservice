@@ -53,31 +53,85 @@ confirmation/HTTP response can still duplicate delivery; this is not exactly-onc
 Do not assign this queue to the Python ingestion skeleton, which is not the Go
 consumer. Do not enable production crawling just because these routes now exist.
 
-## Remaining API parity work
+## Implemented: protected data adapter
 
-1. Book compatibility: accept source ID and existing metadata/counter payloads;
-   preserve worker-visible IDs on reads and updates. Existing records need an
-   explicit migration/translation strategy; never infer identity from names.
-2. Taxonomy compatibility: preserve existing find/create responses and UUID author
-   IDs. In particular, the old worker sends source `status_id` but creates statuses
-   without IDs; the backend needs an explicit status mapping/seed, not reliance
-   on Go map iteration order or auto-increment insertion order.
-3. Chapter compatibility: accept `published=true` plus `word_count` without
-   forcing a separate worker content-fetch/publish pipeline. Old chapter metadata
-   may be published even when content is absent. Implement this as a deliberate
-   compatibility rule with tests, not a global bypass of modern API validation.
-4. Define compatibility endpoint selection without exposing admin-only draft reads
-   through anonymous public routes. Then test the unchanged handlers against the
-   adapter before selecting a new base URL.
+Set `MYTRUYEN_BACKEND_MODE=compat` and keep `MYTRUYEN_BACKEND` ending in
+`/api/v1` (not `/worker`). Only backend book, chapter, author and taxonomy paths
+are redirected under `/api/v1/worker`. Authentication and RabbitMQ paths remain
+unchanged. Omitted mode defaults to `legacy` for existing standalone deployments.
+The compatibility controllers require IMPORTER/ADMIN and are disabled unless
+`LEGACY_WORKER_COMPAT_ENABLED=true`.
 
-The default consumer has not been rewired, and the experimental `cmd/import-book`
-has not been connected to it. Existing new import APIs and mappings are retained
-but are not imposed on legacy worker calls.
+Migration V7 adds `legacy_worker_books`: a unique source ID -> unique internal
+book ID link plus source payload snapshot. Worker responses use source IDs;
+public APIs continue using internal Catalog IDs. Never infer links by title or
+assume identical numeric IDs. Source counters are retained in the snapshot and
+returned to the worker, without overwriting local engagement/stat projections.
+Thus public counters can intentionally differ from source counters.
+
+Configure `LEGACY_WORKER_STATUS_MAP` as JSON mapping actual source status IDs to
+Catalog slugs, for example `{"9":"compat-status"}` is a TEST EXAMPLE ONLY.
+Populate it from verified source data and create the corresponding statuses
+before importing books. Missing mappings fail with 409, without orphan books.
+Insertion order and auto-increment IDs are never used to guess status identity.
+
+The adapter retains create/update branching, creator fallback and published
+chapter metadata without content. Public content reads still return 404 when
+content is absent; modern chapter creation still requires draft state. This
+does not implement chapter-content crawling. Duplicate identical creates are
+replay-safe; different payloads return 409. PATCH retains legacy overwrite
+semantics, so source updates can overwrite editor changes to submitted fields.
+Deleted mapped books/chapters are not silently resurrected.
+
+For reviewed existing data, an ADMIN can call
+`POST /api/v1/admin/catalog/worker/books/{sourceId}/bind` with
+`{"book_id":123,"source_status_id":9}` (example IDs only). It links an existing
+Catalog record without copying/moving chapters. Status must match; conflicts
+fail. Review identity against the source before each binding. Existing public
+URL/ID migration remains a separate deployment decision.
+
+The experimental `cmd/import-book` remains separate and is not used by the
+legacy consumer. Its mapping tables/protocol are not imposed on old handlers.
+
+## Deployment order (operator runbook; not executed here)
+
+1. Stop the old consumer and scheduled jobs; back up PostgreSQL and record the
+   deployed revision. Do not run old and new consumers simultaneously.
+2. Deploy Identity/Catalog/Gateway; let Flyway apply migrations. Keep the Go
+   worker stopped. Provision a dedicated IMPORTER account, not an admin account.
+3. Set Catalog compatibility flag, exact crawl queue and verified status-map.
+   Set the worker credentials and source URL in a private environment file.
+   `WORKER_RABBITMQ_URL` must use the Compose hostname `rabbitmq`, the correct
+   vhost, and URL-encoded credentials. Never commit the environment file.
+4. Seed/review statuses, authors and taxonomy; bind existing books explicitly.
+   Backfill/migrate old data separately if it has not yet been moved to Catalog.
+5. Run disposable PostgreSQL/RabbitMQ integration verification before production.
+   Offline H2 tests do not establish PostgreSQL locking or broker delivery parity.
+6. Only with permission to crawl, start a canary with a dedicated queue/source
+   scope and check book/chapter results. Starting the worker also starts its
+   existing scheduled latest-book polling; it is NOT a passive/manual-only mode.
+7. To enable the prepared Compose service, the operator runs
+   `docker compose --profile worker up -d --build worker`. Start with
+   `CRAWL_CONCURRENCY=1`. Check auth errors, queue growth, 409 conflicts and memory
+   before increasing load. No Docker or live crawler was started during this work.
+
+The Python ingestion skeleton is now under `experimental-ingestion` profile;
+it does not replace the Go worker and must not consume its queue.
+Rollback: stop the Go worker first, preserve backups and mapping rows, redeploy
+the previous application revision. Do not undo Flyway by deleting tables or
+restore an old database over new writes without a reviewed recovery plan.
 
 ## Verification
 
-Offline tests cover exact old message bodies, all six routes, validation and
-authorization, disabled mode, publisher ack/nack/return/failure/timeout handling.
-RabbitTemplate is mocked; no real broker or live source is contacted. Real broker
-delivery and book/chapter end-to-end parity are not yet verified. Docker remains
-off during this work.
+Offline tests cover message bodies, task routes, authorization, publication,
+source IDs/counters, idempotency, binding, deleted records and publisher errors.
+The Go contract test executes original taxonomy/book/chapter/latest/all-books
+handlers against actual Spring HTTP/JPA endpoints, with a fake source and mocked
+RabbitMQ publisher. It also checks author-to-creator fallback and incremental
+chapters. Catalog CI enables it using `RUN_WORKER_CONTRACT_TESTS=true`.
+
+Locally, install Go and JDK 17, set that environment variable and run
+`./gradlew test bootJar --no-daemon` from `catalog-service`. Run `go test ./...`,
+`go vet ./...`, `go build ./...` from `worker`, and Gradle tests in the gateway.
+The contract uses H2 and a test JWT; real PostgreSQL, RabbitMQ, Identity login,
+Gateway forwarding and live source behavior still require deployment checks.

@@ -93,6 +93,7 @@ services:
       SEARCH_SYNC_ENABLED: "true"
       LEGACY_WORKER_COMPAT_ENABLED: ${LEGACY_WORKER_COMPAT_ENABLED:-false}
       RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
+      LEGACY_WORKER_STATUS_MAP: '${LEGACY_WORKER_STATUS_MAP:-}'
       DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_POSTGRES_DB:-mytruyen_catalog}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -155,7 +156,30 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  worker:
+    profiles: [worker]
+    build: ./worker
+    restart: unless-stopped
+    environment:
+      MYTRUYEN_BACKEND: http://mytruyen-gateway:8080/api/v1
+      MYTRUYEN_BACKEND_MODE: compat
+      MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
+      MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}
+      METRUYEN_BACKEND: ${METRUYEN_BACKEND:-}
+      METRUYEN_EMAIL: ${METRUYEN_EMAIL:-}
+      METRUYEN_PASSWORD: ${METRUYEN_PASSWORD:-}
+      RABBITMQ_URL: ${WORKER_RABBITMQ_URL:-}
+      RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
+      CRAWL_CONCURRENCY: ${CRAWL_CONCURRENCY:-1}
+      HTTP_TIMEOUT: 30s
+    depends_on:
+      mytruyen-gateway:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
   ingestion-worker:
+    profiles: [experimental-ingestion]
     build: ./ingestion-worker
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
