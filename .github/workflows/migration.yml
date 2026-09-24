@@ -4,6 +4,11 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      publish_images:
+        description: 'Publish Docker Hub images (main branch only)'
+        required: false
+        type: boolean
+        default: false
       run_integration:
         description: 'Start a disposable Docker integration stack'
         required: false
@@ -71,6 +76,58 @@ jobs:
       - run: go test -race ./...
       - run: go vet ./...
       - run: go build ./...
+
+  docker-publish:
+    name: Publish ${{ matrix.service }}
+    needs: [java, python, worker]
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_images)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        service: [identity-service, catalog-service, engagement-service, mytruyen-gateway, search-service, worker]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Hub configuration
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [[ ! "$DOCKERHUB_USERNAME" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || [[ -z "$DOCKERHUB_TOKEN" ]]; then
+            echo '::error::Set repository variable DOCKERHUB_USERNAME and secret DOCKERHUB_TOKEN.'
+            exit 1
+          fi
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service == 'mytruyen-gateway' && 'gateway' || matrix.service }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          provenance: mode=min
+          sbom: true
+      - name: Record published digest
+        env:
+          IMAGE: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service == 'mytruyen-gateway' && 'gateway' || matrix.service }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "Published $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
   integration:
     if: github.event_name == 'workflow_dispatch' && inputs.run_integration

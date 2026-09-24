@@ -47,6 +47,8 @@ The public Gateway listens on `http://localhost:8080`. RabbitMQ management is av
 
 ## Build and test
 
+Docker Hub publishing after tests: [CI setup, image tags and rollback](docs/dockerhub-ci.md).
+
 Java services:
 
 ```powershell
