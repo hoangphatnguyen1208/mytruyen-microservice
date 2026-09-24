@@ -15,7 +15,7 @@ try {
     )
     [System.IO.File]::WriteAllLines($resolvedOutput, $content)
     Write-Host "JWT key pair written to $resolvedOutput"
-    Write-Host "Keep this file secret; only auth-service may receive JWT_PRIVATE_KEY_BASE64."
+    Write-Host "Keep this file secret; only identity-service may receive JWT_PRIVATE_KEY_BASE64."
 }
 finally {
     $rsa.Dispose()

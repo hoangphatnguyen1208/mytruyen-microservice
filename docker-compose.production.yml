@@ -1,0 +1,32 @@
+# Optional single-host overlay. TLS, secret provisioning and alerts remain external.
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  identity-db:
+    <<: *runtime
+  catalog-db:
+    <<: *runtime
+  engagement-db:
+    <<: *runtime
+  rabbitmq:
+    <<: *runtime
+  meilisearch:
+    <<: *runtime
+  identity-service:
+    <<: *runtime
+  catalog-service:
+    <<: *runtime
+  engagement-service:
+    <<: *runtime
+  search-service:
+    <<: *runtime
+  search-indexer:
+    <<: *runtime
+  mytruyen-gateway:
+    <<: *runtime
