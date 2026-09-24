@@ -28,8 +28,15 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-go@v5
+        if: matrix.service == 'catalog-service'
+        with:
+          go-version-file: worker/go.mod
+          cache-dependency-path: worker/go.sum
       - run: bash gradlew test bootJar --no-daemon
         working-directory: ${{ matrix.service }}
+        env:
+          RUN_WORKER_CONTRACT_TESTS: ${{ matrix.service == 'catalog-service' && 'true' || 'false' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

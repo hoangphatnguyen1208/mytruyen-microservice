@@ -81,6 +81,9 @@ func consumer(ctx context.Context) error {
 	MyTruyenClient := httpclient.New(ctx, cfg.Backend.URL, httpclient.Credentials{
 		Email: cfg.Backend.Email, Password: cfg.Backend.Password,
 	}, false, cfg.HTTPTimeout)
+	if cfg.BackendMode == "compat" {
+		httpclient.UseWorkerCompatibilityEndpoints(MyTruyenClient, cfg.Backend.URL)
+	}
 
 	c := cron.New(cron.WithChain(cron.SkipIfStillRunning(cron.DefaultLogger)))
 	_, err = c.AddFunc("*/1 * * * *", func() {

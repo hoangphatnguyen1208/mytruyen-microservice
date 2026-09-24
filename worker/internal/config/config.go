@@ -14,6 +14,7 @@ type Config struct {
 	RabbitURL, Queue string
 	Concurrency      int
 	HTTPTimeout      time.Duration
+	BackendMode      string
 }
 
 // LoadImport validates only HTTP settings; the one-book import does not use RabbitMQ.
@@ -53,6 +54,13 @@ func Load(get func(string) string) (Config, error) {
 	c.RabbitURL = get("RABBITMQ_URL")
 	c.Queue = get("RABBITMQ_QUEUE_CRAWL")
 	c.Concurrency = 2
+	c.BackendMode = get("MYTRUYEN_BACKEND_MODE")
+	if c.BackendMode == "" {
+		c.BackendMode = "legacy"
+	}
+	if c.BackendMode != "legacy" && c.BackendMode != "compat" {
+		return c, fmt.Errorf("MYTRUYEN_BACKEND_MODE must be legacy or compat")
+	}
 	u, err := url.Parse(c.RabbitURL)
 	if err != nil || u.Host == "" || (u.Scheme != "amqp" && u.Scheme != "amqps") {
 		return c, fmt.Errorf("RABBITMQ_URL must be an AMQP(S) URL")
