@@ -50,8 +50,8 @@ no arguments. Messages are persistent and sent through the default exchange.
 HTTP success requires broker confirm and no mandatory return. Broker failure,
 nack, returned/unroutable message or confirmation timeout returns 503. A lost
 confirmation/HTTP response can still duplicate delivery; this is not exactly-once.
-Do not assign this queue to the Python ingestion skeleton, which is not the Go
-consumer. Do not enable production crawling just because these routes now exist.
+Only the Go worker should consume this queue. Do not enable production crawling
+just because these routes now exist.
 
 ## Implemented: protected data adapter
 
@@ -115,8 +115,8 @@ legacy consumer. Its mapping tables/protocol are not imposed on old handlers.
    `CRAWL_CONCURRENCY=1`. Check auth errors, queue growth, 409 conflicts and memory
    before increasing load. No Docker or live crawler was started during this work.
 
-The Python ingestion skeleton is now under `experimental-ingestion` profile;
-it does not replace the Go worker and must not consume its queue.
+The unused Python ingestion skeleton has been removed; Go `worker/` is the sole
+crawl/import consumer.
 Rollback: stop the Go worker first, preserve backups and mapping rows, redeploy
 the previous application revision. Do not undo Flyway by deleting tables or
 restore an old database over new writes without a reviewed recovery plan.

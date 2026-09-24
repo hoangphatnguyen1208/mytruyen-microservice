@@ -21,7 +21,7 @@ Identity's `IdentityStore` remains in `service` because it coordinates repositor
 
 Catalog follows the same layout. Controllers remain in `api`; DTOs, mapping, PATCH validation and error handling are separated from controllers. Transaction boundaries and HTTP contracts are unchanged.
 
-Gateway groups JWT components in `security`. Search keeps its HTTP/query modules under `app/` and indexing/consumer/replay code under `app/sync/`. Engagement and Ingestion remain small skeletons. Tests remain separate from production sources; Java service-wide integration tests stay in the root test package.
+Gateway groups JWT components in `security`. Search keeps its HTTP/query modules under `app/` and indexing/consumer/replay code under `app/sync/`. Engagement remains a small skeleton. The Go crawler lives in `worker/`; no separate Python ingestion service is needed. Tests remain separate from production sources; Java service-wide integration tests stay in the root test package.
 
 Resources stay under `src/main/resources`: application configuration and Flyway migrations are not Java packages. This refactor changes no database schema, table names, URLs or deployment entry points.
 

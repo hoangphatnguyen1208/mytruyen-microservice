@@ -25,8 +25,8 @@ intended public/private visibility before the first run:
 - `mytruyen-worker`
 
 Search API and search-indexer share `mytruyen-search-service`; the indexer keeps
-its existing `python -m app.sync.worker` command. Python ingestion is experimental
-and excluded. PostgreSQL, RabbitMQ, Redis and Meilisearch use upstream images.
+its existing `python -m app.sync.worker` command. Go `worker/` handles crawl/import.
+PostgreSQL, RabbitMQ, Redis and Meilisearch use upstream images.
 
 ## Tags and deployment
 

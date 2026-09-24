@@ -8,7 +8,7 @@ Phạm vi: một máy chủ Linux, Docker Compose, reverse proxy HTTPS trên hos
 - Docker Engine + Compose v2 hoạt động trên server, có dung lượng cho images, DB, index, outbox và backup. Xác định RAM/disk bằng tải thực, không dùng test nhỏ để suy ra sizing production.
 - CI Java/Python xanh ở đúng commit phát hành; build artifact từ checkout sạch. Ghi lại commit SHA, image IDs/digests, schema migration version và bản backup tương ứng. Không dùng nhánh `main` đang thay đổi làm mốc rollback.
 - Staging riêng đã rehearsal import, khóa/concurrency PostgreSQL, mất kết nối broker và smoke xuyên Gateway. Unit tests H2/mocks hiện tại chưa thay thế điều kiện này.
-- Chỉ đưa Identity, Catalog, Search vào phạm vi API đã chuyển. Engagement vẫn skeleton; Ingestion chưa xử lý crawler thật. **Không khởi động ingestion-worker để nhận command production** vì consumer skeleton chưa thực hiện nghiệp vụ.
+- Chỉ đưa Identity, Catalog, Search vào phạm vi API đã chuyển. Engagement vẫn skeleton. Crawl/import sử dụng Go `worker/` qua profile `worker`; chỉ bật sau khi hoàn thành các bước kiểm chứng trong [runbook worker](migration/worker-legacy-compat.md).
 
 ## 2. Cấu hình và secret
 

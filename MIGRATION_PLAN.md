@@ -2,7 +2,7 @@
 
 ## 1. Kết luận kiến trúc
 
-Không nên tách mỗi bảng hoặc mỗi nhóm endpoint thành một service. Với quy mô code hiện tại, kiến trúc đích hợp lý là 4 service bắt buộc và 1 service tùy chọn:
+Không nên tách mỗi bảng hoặc mỗi nhóm endpoint thành một service. Kiến trúc đích gồm 4 service chính, Go worker crawl/import và Engagement ở phase sau:
 
 | Service | Công nghệ | Sở hữu dữ liệu | Ghi chú |
 |---|---|---|---|
@@ -10,7 +10,7 @@ Không nên tách mỗi bảng hoặc mỗi nhóm endpoint thành một service.
 | `identity-service` | Java 17+, Spring Boot | user, role, credential, refresh session | Gộp `auth-service` và `user-service` hiện tại thành một bounded context; không truyền password hash qua HTTP |
 | `catalog-service` | Java 17+, Spring Boot | book, author, genre, tag, book_status, chapter, chapter_content | CRUD và transaction cốt lõi, schema ổn định, phù hợp Java/JPA; chưa nên tách book và chapter thành hai service |
 | `search-service` | Python, FastAPI | search index/projection, không sở hữu dữ liệu catalog | Meilisearch trước; semantic/audio search sau. Nhận event catalog để cập nhật index |
-| `ingestion-worker` | Python | job state, crawl checkpoint nếu cần | Crawl nguồn ngoài, chuẩn hóa dữ liệu, gửi command/event; Python phù hợp scraping, NLP/AI |
+| `worker` | Go | Không ghi trực tiếp DB Catalog | Giữ crawler hiện có, gọi API tương thích của Catalog; không tạo thêm Python ingestion worker |
 | `engagement-service` (phase sau) | Java, Spring Boot | comment, review, rating, bookmark | Chỉ tách khi các tính năng này được triển khai thật và có tải riêng |
 
 Không tạo riêng `stat-service` ở giai đoạn đầu. Các count như chapter count, view count, review count là projection được cập nhật bằng event hoặc nằm trong service sở hữu nghiệp vụ.
@@ -26,7 +26,7 @@ Không tạo riêng `stat-service` ở giai đoạn đầu. Các count như chap
 ### Giữ Python
 
 - Search, embedding, reranking, transcription và xử lý audio.
-- Crawler/ingestion worker và tích hợp nguồn truyện ngoài.
+- Crawler và tích hợp nguồn truyện ngoài giữ Go trong `worker/`, không viết lại bằng Python.
 - Các job thử nghiệm ML/AI hoặc data pipeline.
 
 Java không tự động làm endpoint CRUD nhanh hơn đủ để bù chi phí rewrite. Lý do chuyển catalog sang Java ở đây là chuẩn hóa core domain, vận hành và contract, không phải vì FastAPI không đáp ứng hiệu năng. Nếu đội hiện tại mạnh Python hơn Java, có thể giữ `catalog-service` bằng FastAPI trong phase 1-3 rồi rewrite sau khi cutover ổn định.
@@ -124,12 +124,12 @@ RabbitMQ là message broker duy nhất cho integration event. Redis chỉ dùng 
 
 **Gate:** tạo/sửa/xóa book phản ánh lên search theo SLA; replay event không tạo sai dữ liệu; có quy trình rebuild index.
 
-### Phase 4 - Ingestion worker (3-5 ngày)
+### Phase 4 - Tích hợp Go worker
 
-- Tách crawler thành Python worker; một queue/command model duy nhất.
-- Worker không ghi trực tiếp Catalog DB; gọi internal command API hoặc phát validated import command.
-- Thêm idempotency key theo source/book/chapter, checkpoint, retry exponential và DLQ.
-- Bỏ endpoint ARQ/RabbitMQ trùng nhau; admin endpoint chỉ enqueue command.
+- Giữ nguyên nghiệp vụ Go crawler trong `worker/`, chỉ điều chỉnh endpoint bằng chế độ `compat`.
+- Worker không ghi trực tiếp Catalog DB; gọi API tương thích có quyền IMPORTER.
+- Catalog ánh xạ ID nguồn, xử lý create lặp; cấu hình status-map và liên kết dữ liệu cũ trước cutover.
+- Giữ RabbitMQ task chain cũ. Checkpoint/retry exponential/DLQ là cải tiến tương lai, chưa áp dụng nếu làm thay đổi logic cũ.
 
 **Gate:** crawl retry an toàn, không tạo duplicate book/chapter, quan sát được trạng thái job.
 

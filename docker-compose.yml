@@ -178,16 +178,6 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  ingestion-worker:
-    profiles: [experimental-ingestion]
-    build: ./ingestion-worker
-    environment:
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-      INGESTION_QUEUE: mytruyen.ingestion.commands.v1
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-
   mytruyen-gateway:
     build: ./mytruyen-gateway
     ports: ["${GATEWAY_BIND_ADDRESS:-0.0.0.0}:${GATEWAY_PORT:-8080}:8080"]
