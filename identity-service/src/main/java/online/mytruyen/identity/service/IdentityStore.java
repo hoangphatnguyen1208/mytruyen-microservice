@@ -91,8 +91,8 @@ public class IdentityStore {
     }
 
     public void setRoles(UserEntity user, List<Integer> ids) {
-        if (ids == null || ids.isEmpty() || ids.stream().anyMatch(id -> id == null || (id != 1 && id != 2)))
-            throw new ApiError(400, "Roles must contain IDs 1 (USER) or 2 (ADMIN)");
+        if (ids == null || ids.isEmpty() || ids.stream().anyMatch(id -> id == null || id < 1 || id > 3))
+            throw new ApiError(400, "Roles must contain IDs 1 (USER), 2 (ADMIN) or 3 (IMPORTER)");
         var values = roles.findAllById(ids.stream().distinct().map(Integer::shortValue).toList());
         if (values.size() != new HashSet<>(ids).size()) throw new ApiError(400, "Role not found");
         user.getRoles().clear();

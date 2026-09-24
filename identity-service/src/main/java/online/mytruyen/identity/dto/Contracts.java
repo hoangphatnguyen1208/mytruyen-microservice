@@ -19,9 +19,9 @@ public final class Contracts {
     public record AdminCreate(@NotBlank @Email @Size(max=254) String email,
             @Pattern(regexp="[a-zA-Z0-9_.-]{3,50}") String username,
             @NotBlank @Size(min=8,max=72) String password,
-            @NotEmpty List<@Min(1) @Max(2) Integer> roles) {}
+            @NotEmpty List<@Min(1) @Max(3) Integer> roles) {}
     public record AdminUpdate(Boolean is_active, @Size(max=255) String full_name,
-            @Size(min=1,max=2) List<@Min(1) @Max(2) Integer> roles) {}
+            @Size(min=1,max=3) List<@Min(1) @Max(3) Integer> roles) {}
     public record UserView(UUID id, String email, String username, String full_name,
             boolean is_active, List<String> roles, Instant created_at, Instant updated_at) {}
     public record Token(String access_token, String refresh_token, String token_type, long expires_in) {}

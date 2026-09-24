@@ -65,6 +65,18 @@ class IdentityIntegrationTests {
     String access(JsonNode t) { return t.get("access_token").asText(); }
     String refresh(JsonNode t) { return t.get("refresh_token").asText(); }
 
+    @Test void adminCanProvisionImporterWithoutGrantingAdministration() throws Exception {
+        accounts.adminCreate(new Contracts.AdminCreate("admin@example.com",null,"Password123!",List.of(2)));
+        String admin=access(post("login",Map.of("email","admin@example.com","password","Password123!")).body().get("data"));
+        var created=request("POST","/api/v1/users",Map.of("email","importer@example.com","password","Password123!","roles",List.of(3)),admin);
+        assertThat(created.status()).isEqualTo(201);
+        var login=post("login",Map.of("email","importer@example.com","password","Password123!"));
+        String importer=access(login.body().get("data"));
+        assertThat(jwt.verify(importer).get("roles",List.class)).containsExactly("ROLE_IMPORTER");
+        assertThat(request("GET","/api/v1/users",null,importer).status()).isEqualTo(403);
+        assertThat(request("PATCH","/api/v1/users/"+created.body().at("/data/id").asText(),Map.of("roles",List.of(2)),importer).status()).isEqualTo(403);
+    }
+
     @Test void registerLoginAndProfileDoNotExposeCredentials() throws Exception {
         var t=registerLogin("Reader@example.com");
         var me=request("GET","/api/v1/users/me",null,access(t));
