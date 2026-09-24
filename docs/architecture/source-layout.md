@@ -14,13 +14,14 @@ online.mytruyen.<service>/
   exception/    Application exceptions and HTTP exception handlers
   mapper/       Entity-to-DTO mapping (Catalog)
   support/      Shared implementation helpers such as validated PATCH (Catalog)
+  messaging/    Rabbit topology, confirmed outbox publisher and scheduler (Catalog)
 ```
 
 Identity's `IdentityStore` remains in `service` because it coordinates repositories, DTO mapping and outbox writes. `BootstrapAdmin` also lives there as a startup use case. JWT issuance/verification is exposed through public methods; token lifetime remains private with a read-only accessor.
 
 Catalog follows the same layout. Controllers remain in `api`; DTOs, mapping, PATCH validation and error handling are separated from controllers. Transaction boundaries and HTTP contracts are unchanged.
 
-Gateway already groups JWT components in `security`. Engagement, Search and Ingestion remain small skeletons: create the corresponding packages when adding functionality, rather than empty directories now. Tests remain under `src/test/java`, independent of production sources; service-wide integration tests stay in the root test package.
+Gateway groups JWT components in `security`. Search keeps its HTTP/query modules under `app/` and indexing/consumer/replay code under `app/sync/`. Engagement and Ingestion remain small skeletons. Tests remain separate from production sources; Java service-wide integration tests stay in the root test package.
 
 Resources stay under `src/main/resources`: application configuration and Flyway migrations are not Java packages. This refactor changes no database schema, table names, URLs or deployment entry points.
 

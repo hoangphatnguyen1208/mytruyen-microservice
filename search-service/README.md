@@ -20,18 +20,28 @@ Hybrid/audio/YouTube endpoints continue returning 503, as the legacy backend did
 
 ## Important limitation
 
-Search requires a books index containing IDs that match Catalog. The offline rebuild command below now seeds or replaces that index. Automatic incremental indexing and outbox/consumer integration remain unfinished: edits after rebuild are not automatically reflected in ranking/matching. No production data/index was changed by this migration.
+Search requires a books index containing IDs that match Catalog. The offline rebuild below seeds existing/imported data. Ongoing Book changes and Author renames now synchronize through Catalog's transactional search outbox and the separate `search-indexer` process. No production data/index was changed by this migration.
+
+## Automatic synchronization
+
+Compose enables Catalog's `SEARCH_SYNC_ENABLED` publisher and starts `python -m app.sync.worker` in `search-indexer`. Local Catalog tests leave the relay disabled. The worker receives persistent book invalidations, reads current public Catalog state, waits for Meili tasks, then ACKs. Draft/deleted books are removed. Single-active-consumer and prefetch 1 serialize writes; duplicates/out-of-order notifications rehydrate current state rather than restoring historical snapshots.
+
+After five failed attempts, messages move to `mytruyen.search.sync.v1.dead` with confirmed delivery before ACK. Repair the cause, then run `python -m app.sync.replay --max-messages 100` in the indexer environment. Invalid events remain for investigation. This is eventual consistency, not exactly-once delivery or unattended recovery from every dependency failure.
+
+`RABBITMQ_URL` is secret; `SYNC_TASK_TIMEOUT` defaults to 120 seconds. Production must set `MEILI_SEARCH_KEY` for the API and `MEILI_WRITE_KEY` for the indexer in Compose; both map to the process's `MEILI_MASTER_KEY` setting for compatibility. Blank restricted keys fall back to the master only for local/bootstrap use. The indexer enforces searchable fields name/author and displayed fields id/name/author when it first handles work.
+
+See [deployment](../docs/deployment.md) and [verification/operations](../docs/migration/verification.md).
 
 ## Offline index rebuild
 
-1. Back up Meilisearch. Pause Catalog book/author/taxonomy/chapter writes and every competing index writer/rebuild job. Keep writes paused until the command finishes or an uncertain task status is resolved. The flag below is an operator acknowledgement, not an automatic lock.
+1. Back up Meilisearch. Pause Catalog book/author/taxonomy/chapter writes and every competing index writer/rebuild job, including **all search-indexer instances**. Keep writes paused until the command finishes or an uncertain task status is resolved. The flag below is an operator acknowledgement, not an automatic lock.
 2. Configure CATALOG_URL, MEILI_URL, MEILI_INDEX and MEILI_MASTER_KEY. The rebuild key needs index create/get/swap, settings get/update, documents add, stats and task-read permissions for both target and generated staging names. Do not expose this write key to clients; normal search should use a restricted key.
 3. From search-service run:
 
 ```powershell
 uv run python -m app.rebuild --catalog-writes-paused
-# Or inside an already-configured Compose service:
-docker compose exec search-service python -m app.rebuild --catalog-writes-paused
+# Compose: export a maintenance MEILI_MASTER_KEY securely first; keep the indexer stopped.
+docker compose run --rm --no-deps -e MEILI_MASTER_KEY search-indexer python -m app.rebuild --catalog-writes-paused
 ```
 
 The command reads public Catalog books in ascending ID pages of 100, extracts only id/name/author, and verifies ordered IDs, constant total, complete pages and final Meilisearch document count. It copies existing target settings; a fresh index searches name/author by default. Existing custom settings must remain compatible with these three indexed fields. A new UUID-named staging index is used for every run.
@@ -42,10 +52,10 @@ Default maximum is 1,000,000 documents and 120 seconds per task; override with -
 
 Task IDs and staging names are printed to stderr; final index/document count/previous_index is JSON on stdout. If a request/task times out, the server may still complete it: inspect the logged Meilisearch task before retrying or unpausing writers, especially after swap. Never blindly repeat a swap. Retain backups until verification; cleanup requires a separate deliberate operation.
 
-This is a maintenance-window rebuild, not a live database snapshot. Count/order checks catch some concurrent changes, but cannot detect edits that keep IDs/count unchanged; pausing writers is mandatory. No distributed rebuild lock or continuous synchronization is claimed.
+This is a maintenance-window rebuild, not a live database snapshot. Count/order checks catch some concurrent changes, but cannot detect edits that keep IDs/count unchanged; pausing writers is mandatory. There is no distributed rebuild lock. Restart the indexer after a successful rebuild and resolve backlog/DLQ before ending maintenance.
 
 API reference: [Meilisearch swap-indexes specification](https://specs.meilisearch.dev/specifications/text/0191-swap-indexes-api.html).
 
 ## Verification
 
-Run uv run pytest. Tests use HTTPX mock transports; no real Meilisearch, Catalog, or external source is contacted. Test with real dependencies and current frontend payloads before cutover.
+Run uv run --locked pytest. The 60 tests use HTTPX transports and broker mocks; no real Meilisearch, Catalog, or external source is contacted. Test with real dependencies and current frontend payloads before cutover. CI Docker integration is opt-in via workflow_dispatch, not run on ordinary push/PR.

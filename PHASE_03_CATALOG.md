@@ -56,4 +56,10 @@ Added python -m app.rebuild for maintenance-window index seeding/replacement. Th
 
 Search tests now cover new/existing index rebuild, settings preservation, null authors, multiple pages, failed tasks, changed totals, document limits, empty-index protection and ambiguous swap timeout. Tests use mock HTTP, not real Meilisearch. See search-service/README.md for the runbook.
 
-Next, feature-first: automatic index synchronization, then crawler/import. PostgreSQL, real upstream and frontend/Gateway contract checks remain deployment gates.
+## Groups 1, 3, 6 — incremental sync, stats and deployment checks
+
+Automatic Search synchronization is implemented: transactional V4 search_outbox, confirmed Rabbit relay, current-state consumer with task completion before ACK, bounded retry/DLQ and explicit replay. Book mutations and author renames enqueue jobs; chapter content remains outside the name/author index. Offline rebuild is still required for preexisting/imported data and must stop indexers.
+
+Added legacy stats routes and ADMIN totals, with parent visibility/soft-delete filters in JPA counts and Gateway routing. Topboxes now validates limit 5–50 based on real upstream responses and distinguishes validation failure from dependency failure.
+
+Verification: Catalog 33, Gateway 14, Identity 16, Search 60 tests pass. Java bootJar succeeds; Engagement has no tests yet. CI unit jobs are automatic; Docker integration is manual opt-in. Docker integration was not run, per user request. See [deployment](docs/deployment.md) and [verification](docs/migration/verification.md) for deployment/rollback, test commands and remaining staging gates. Next feature migration: crawler/import; no production cutover claimed.

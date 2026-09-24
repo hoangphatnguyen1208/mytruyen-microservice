@@ -27,6 +27,8 @@ Source organization and package responsibilities: [Source layout](docs/architect
 
 ## Run locally
 
+Deployment, secrets, initial index, backup/rollback: [Deployment runbook](docs/deployment.md). Test scope and outbox/DLQ operation: [Verification](docs/migration/verification.md). Ordinary CI runs unit tests only; Docker integration is a manual opt-in.
+
 Generate local JWT keys, then create the environment file:
 
 ```powershell
@@ -65,7 +67,7 @@ Push-Location ingestion-worker; uv run pytest; Pop-Location
 1. Walking skeleton and deployable topology (current).
 2. Identity implementation complete; rehearse PostgreSQL migration and account-data cutover before deployment.
 3. Implement Catalog schema/API and migrate book/chapter data.
-4. Build event outbox and Search projection.
+4. Search read/rebuild and automatic outbox projection implemented; real dependency/staging verification remains a deployment gate.
 5. Move crawler into Ingestion Worker.
 6. Implement Engagement only when its product APIs are scheduled.
 7. Canary cutover and archive the monolith/legacy services.

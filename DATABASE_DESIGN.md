@@ -125,6 +125,14 @@ Khi retry sau timeout HTTP, Catalog upsert theo source/external_id và content h
 
 ## 7. Event tables và tính nhất quán
 
+### Triển khai Search hiện tại (nhóm 1)
+
+Catalog V4 thêm `search_outbox(event_id uuid PK, book_id bigint, occurred_at timestamptz, published_at timestamptz?)` với index pending. Không FK để job xóa index không bị cascade mất. Book mutation và author rename ghi invalidation cùng transaction. Bảng tách khỏi `catalog_outbox` đang lưu Chapter events có aggregate version; Search không dùng Chapter events vì hiện chỉ index id/name/author.
+
+Ở giai đoạn này chưa thêm Search SQL database/indexing_jobs như thiết kế mở rộng bên dưới. Một logical consumer (Rabbit single-active, prefetch 1) đọc lại Catalog hiện tại, đợi Meili task rồi ACK; replay idempotent theo trạng thái hiện tại, không theo snapshot event. Đây là phương án nhỏ hơn cho tải hiện tại, có retry/DLQ và replay thủ công. Nếu cần parallel indexing, multi-index writers, throughput cao hoặc desired-version/fencing mạnh hơn thì phải bổ sung job/version store; không tăng số consumer độc lập rồi giả định vẫn giữ đặc tính hiện tại. Xem docs/migration/verification.md.
+
+### Thiết kế mở rộng cho domain events
+
 Mỗi DB có producer nghiệp vụ thêm `outbox_events`; DB có consumer thêm `processed_events`. Không tạo database event dùng chung.
 
 `outbox_events`: `event_id uuid PK`, `aggregate_type varchar(100)`, `aggregate_id text`, `aggregate_version bigint`, `event_type varchar(150)`, `schema_version integer`, `payload jsonb`, `correlation_id uuid?`, `occurred_at timestamptz`, `published_at timestamptz?`, `attempts integer DEFAULT 0`, `next_attempt_at timestamptz`, `lease_until timestamptz?`. Index pending `(next_attempt_at, occurred_at)` WHERE published_at IS NULL. `aggregate_id` text là envelope cho UUID/bigint, bảng domain vẫn giữ kiểu cụ thể.
