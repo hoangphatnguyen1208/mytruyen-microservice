@@ -38,9 +38,13 @@ class TopboxesTests {
     @Test void validatesInputBeforeCallingUpstream() {
         assertThatThrownBy(()->service(2000).get(-1,10)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(400));
         assertThatThrownBy(()->service(2000).get(1,101)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(400));
+        assertThatThrownBy(()->service(2000).get(1,4)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(400));
+        assertThatThrownBy(()->service(2000).get(1,51)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(400));
         assertThat(query).isNull();
     }
     @Test void rejectsUpstreamErrorsRedirectsAndMalformedJson() {
+        code=422;
+        assertThatThrownBy(()->service(2000).get(1,10)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(400));
         code=503;
         assertThatThrownBy(()->service(2000).get(1,10)).isInstanceOfSatisfying(ApiException.class,e->assertThat(e.status).isEqualTo(502));
         code=302;
