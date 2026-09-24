@@ -49,9 +49,25 @@ jobs:
       - run: uv run --locked pytest -q
         working-directory: search-service
 
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: worker/go.mod
+          cache-dependency-path: worker/go.sum
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go build ./...
+
   integration:
     if: github.event_name == 'workflow_dispatch' && inputs.run_integration
-    needs: [java, python]
+    needs: [java, python, worker]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

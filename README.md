@@ -10,7 +10,8 @@ This repository is being migrated from `mytruyen-be` with a strangler-style, ser
 | `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Implemented; local integration tests, PostgreSQL deployment pending |
 | `catalog-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | CRUD + chapter publication/statistics/outbox; event delivery next |
 | `search-service` | Python 3.12 / FastAPI | Search API and search projections | Text search + offline staged rebuild; automatic synchronization pending |
-| `ingestion-worker` | Python 3.12 | Crawl/import commands and data normalization | Walking skeleton |
+| `worker` | Go 1.26 | Existing crawler and Catalog import migration | Imported from the standalone worker repo; cutover pending |
+| `ingestion-worker` | Python 3.12 | Historical ingestion skeleton | Not the crawler implementation; retained pending verified Go cutover |
 | `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 
 Auth and User have been consolidated into [Identity](identity-service/README.md). Their former source is retained in Git history. Identity handles registration, login, refresh rotation, logout, account administration and self-service profiles without credential HTTP calls. See its README for API compatibility changes and offline user import instructions.
@@ -55,6 +56,18 @@ Java services:
 .\mytruyen-gateway\gradlew.bat -p mytruyen-gateway test
 ```
 
+Go worker (run inside `worker/`; tests do not crawl or require Docker):
+
+```powershell
+Push-Location worker
+go test ./...
+go vet ./...
+go build ./...
+Pop-Location
+```
+
+Worker contract and rollout gates: [Worker import](docs/migration/worker-import.md).
+
 Python services:
 
 ```powershell
@@ -68,7 +81,7 @@ Push-Location ingestion-worker; uv run pytest; Pop-Location
 2. Identity implementation complete; rehearse PostgreSQL migration and account-data cutover before deployment.
 3. Implement Catalog schema/API and migrate book/chapter data.
 4. Search read/rebuild and automatic outbox projection implemented; real dependency/staging verification remains a deployment gate.
-5. Move crawler into Ingestion Worker.
+5. Complete the Go crawler migration in `worker/`; retire the Python ingestion skeleton after verification.
 6. Implement Engagement only when its product APIs are scheduled.
 7. Canary cutover and archive the monolith/legacy services.
 

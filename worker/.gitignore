@@ -1,0 +1,7 @@
+.env*
+!.env.example
+*.exe
+/mytruyen-worker
+/import-book
+/coverage.out
+/bin/
