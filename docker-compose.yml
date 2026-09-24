@@ -91,6 +91,8 @@ services:
     build: ./catalog-service
     environment:
       SEARCH_SYNC_ENABLED: "true"
+      LEGACY_WORKER_COMPAT_ENABLED: ${LEGACY_WORKER_COMPAT_ENABLED:-false}
+      RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
       DB_URL: jdbc:postgresql://catalog-db:5432/${CATALOG_POSTGRES_DB:-mytruyen_catalog}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}

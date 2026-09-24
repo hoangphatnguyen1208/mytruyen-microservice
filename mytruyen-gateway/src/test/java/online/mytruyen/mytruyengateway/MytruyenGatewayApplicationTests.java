@@ -16,7 +16,7 @@ class MytruyenGatewayApplicationTests {
         org.assertj.core.api.Assertions.assertThat(catalog).isNotNull();
         org.assertj.core.api.Assertions.assertThat(catalog.getPredicates().stream()
             .filter(p -> p.getName().equals("Path")).flatMap(p -> p.getArgs().values().stream()).toList())
-            .contains("/api/v1/internal/import/**");
+            .contains("/api/v1/internal/import/**","/api/v1/rabbitmq/**");
     }
 
     @Test
