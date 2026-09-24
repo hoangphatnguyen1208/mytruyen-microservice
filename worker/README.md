@@ -12,11 +12,15 @@ not enabled in the default Compose stack while migration is incomplete.
 
 ## Migration status
 
-The Go worker is being migrated to the microservice backend in small steps.
-The HTTP/configuration foundation and a one-book metadata import command are
-implemented. The default queue consumer still uses legacy IDs, payloads and
-RabbitMQ HTTP endpoints. **Do not switch that consumer to the new backend in
-production yet.** Use only the explicit canary command for the new contract.
+Current direction: preserve the original worker's business logic and adapt the
+backend API. Endpoint/base-URL changes are permitted; changes to crawl selection,
+author fallback, chapter discovery, counters, publication or task chaining are
+not part of this migration. The default consumer still uses the old logic.
+The experimental `cmd/import-book` flow is retained for reference, **not** the
+replacement for that consumer. Do not wire it into the existing queue.
+See [legacy compatibility](../docs/migration/worker-legacy-compat.md).
+**Do not switch the consumer to the new backend in production yet:** crawl task
+endpoints are restored, but legacy book/chapter payload compatibility is pending.
 
 Completed foundation:
 - Validated API/RabbitMQ settings and bounded concurrency (default 2).
@@ -46,19 +50,22 @@ live crawl source. Race testing requires a supported C toolchain.
 
 ## Remaining stages
 
-1. Reviewed mapping backfill for existing records and conflict-resolution tools.
-2. Connect the new typed metadata job to versioned queues with confirmed direct
-   task publication instead of legacy backend RabbitMQ HTTP endpoints.
-3. Idempotent draft chapter import, gap reconciliation and separate authorized
-   content adapter before publication.
-4. Versioned task messages, bounded retry/backoff, DLQ/replay and graceful queue
-   lifecycle. Current legacy consumer still requeues failed jobs immediately.
-5. Real PostgreSQL/RabbitMQ integration verification and staged cutover runbook.
+1. Backend adapter for existing book/taxonomy payloads and legacy-visible IDs.
+2. Backend adapter for existing chapter metadata including source word count and
+   publication flag; no forced draft/content-fetch workflow in the worker.
+3. Contract tests executing the existing handlers against compatibility APIs,
+   including author fallback, update/create branches and RabbitMQ task chaining.
+4. Reviewed existing-data migration, real PostgreSQL/RabbitMQ verification and
+   staged cutover. Any retry/reconciliation redesign is separate work, not an
+   implicit change to the original import logic.
 
 Do not run old and new workers against the same queue during cutover. No Docker
 or live crawler is needed for the offline checks above.
 
-## Metadata-only canary (manual, writes data)
+## Experimental metadata-only canary (superseded migration approach)
+
+The following command is not the current migration path. Its draft/versioned
+semantics differ from the original worker; do not use it to validate legacy parity.
 
 The new code is split into `internal/source` (source DTOs), `internal/backend`
 (Catalog DTOs/API), and `internal/jobs` (orchestration). It preserves source IDs

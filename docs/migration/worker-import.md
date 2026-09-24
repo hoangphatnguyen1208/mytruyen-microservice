@@ -1,5 +1,10 @@
 # Go worker → Catalog import (incremental rollout)
 
+> Direction changed: preserve the original worker business logic, adapting APIs
+> or endpoint URLs only. The typed draft/versioned import described below remains
+> an optional experiment, not the target consumer workflow. Current work and
+> remaining compatibility gaps are in [worker-legacy-compat.md](worker-legacy-compat.md).
+
 ## Implemented in this increment
 
 - Identity role `IMPORTER` (role ID `3`), provisioned only through an existing
