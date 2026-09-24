@@ -30,3 +30,14 @@ func TestLoad(t *testing.T) {
 		t.Fatal("legacy concurrency not supported")
 	}
 }
+
+func TestImportConfigurationDoesNotRequireQueueSettings(t *testing.T) {
+	values := map[string]string{
+		"MYTRUYEN_BACKEND": "http://localhost:8080/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test",
+		"METRUYEN_BACKEND": "https://example.test/api", "METRUYEN_EMAIL": "worker@example.test", "METRUYEN_PASSWORD": "test",
+	}
+	c, err := LoadImport(func(key string) string { return values[key] })
+	if err != nil || c.RabbitURL != "" || c.Queue != "" {
+		t.Fatalf("HTTP-only config: %v", err)
+	}
+}

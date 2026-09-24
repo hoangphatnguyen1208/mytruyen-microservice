@@ -16,11 +16,12 @@ type Config struct {
 	HTTPTimeout      time.Duration
 }
 
-func Load(get func(string) string) (Config, error) {
+// LoadImport validates only HTTP settings; the one-book import does not use RabbitMQ.
+func LoadImport(get func(string) string) (Config, error) {
 	c := Config{
-		Backend:   API{get("MYTRUYEN_BACKEND"), get("MYTRUYEN_EMAIL"), get("MYTRUYEN_PASSWORD")},
-		Source:    API{get("METRUYEN_BACKEND"), get("METRUYEN_EMAIL"), get("METRUYEN_PASSWORD")},
-		RabbitURL: get("RABBITMQ_URL"), Queue: get("RABBITMQ_QUEUE_CRAWL"), Concurrency: 2, HTTPTimeout: 30 * time.Second,
+		Backend:     API{get("MYTRUYEN_BACKEND"), get("MYTRUYEN_EMAIL"), get("MYTRUYEN_PASSWORD")},
+		Source:      API{get("METRUYEN_BACKEND"), get("METRUYEN_EMAIL"), get("METRUYEN_PASSWORD")},
+		HTTPTimeout: 30 * time.Second,
 	}
 	for _, entry := range []struct {
 		name string
@@ -34,6 +35,24 @@ func Load(get func(string) string) (Config, error) {
 			return c, fmt.Errorf("%s credentials required", entry.name)
 		}
 	}
+	if value := get("HTTP_TIMEOUT"); value != "" {
+		var err error
+		c.HTTPTimeout, err = time.ParseDuration(value)
+		if err != nil || c.HTTPTimeout <= 0 || c.HTTPTimeout > 5*time.Minute {
+			return c, fmt.Errorf("HTTP_TIMEOUT must be positive and at most 5m")
+		}
+	}
+	return c, nil
+}
+
+func Load(get func(string) string) (Config, error) {
+	c, err := LoadImport(get)
+	if err != nil {
+		return c, err
+	}
+	c.RabbitURL = get("RABBITMQ_URL")
+	c.Queue = get("RABBITMQ_QUEUE_CRAWL")
+	c.Concurrency = 2
 	u, err := url.Parse(c.RabbitURL)
 	if err != nil || u.Host == "" || (u.Scheme != "amqp" && u.Scheme != "amqps") {
 		return c, fmt.Errorf("RABBITMQ_URL must be an AMQP(S) URL")
@@ -49,12 +68,6 @@ func Load(get func(string) string) (Config, error) {
 		c.Concurrency, err = strconv.Atoi(value)
 		if err != nil || c.Concurrency < 1 || c.Concurrency > 32 {
 			return c, fmt.Errorf("crawl concurrency must be between 1 and 32")
-		}
-	}
-	if value = get("HTTP_TIMEOUT"); value != "" {
-		c.HTTPTimeout, err = time.ParseDuration(value)
-		if err != nil || c.HTTPTimeout <= 0 || c.HTTPTimeout > 5*time.Minute {
-			return c, fmt.Errorf("HTTP_TIMEOUT must be positive and at most 5m")
 		}
 	}
 	return c, nil
