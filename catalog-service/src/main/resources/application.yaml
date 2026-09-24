@@ -32,6 +32,7 @@ catalog:
     enabled: ${LEGACY_WORKER_COMPAT_ENABLED:false}
     queue: ${RABBITMQ_QUEUE_CRAWL:}
     confirm-timeout-ms: 5000
+    status-map: '${LEGACY_WORKER_STATUS_MAP:{}}'
   search-sync:
     enabled: ${SEARCH_SYNC_ENABLED:false}
 

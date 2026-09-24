@@ -126,6 +126,12 @@ public class BookService {
         return update(books.findBySlugAndDeletedAtIsNull(slug)
             .orElseThrow(() -> ApiException.missing("Book not found")).getId(),fields);
     }
+    // Validated by LegacyWorkerService's compatibility DTO, not exposed by modern controllers.
+    @Transactional
+    public BookView replaceForLegacyWorker(Long id,BookWrite input) {
+        Book book=books.lockById(id).orElseThrow(() -> ApiException.missing("Book not found"));
+        assign(book,input); books.flush(); searchChanges.book(book.getId()); return view(book);
+    }
     @Transactional
     public void delete(Long id) {
         Book book=books.lockById(id).orElseThrow(() -> ApiException.missing("Book not found"));
