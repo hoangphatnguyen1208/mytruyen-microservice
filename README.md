@@ -27,6 +27,8 @@ Source organization and package responsibilities: [Source layout](docs/architect
 
 ## Run locally
 
+VPS with managed Azure PostgreSQL: [Standalone Azure deployment](docs/deployment-azure.md).
+
 Deployment, secrets, initial index, backup/rollback: [Deployment runbook](docs/deployment.md). Test scope and outbox/DLQ operation: [Verification](docs/migration/verification.md). Ordinary CI runs unit tests only; Docker integration is a manual opt-in.
 
 Generate local JWT keys, then create the environment file:

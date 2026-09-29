@@ -1,0 +1,186 @@
+# Standalone deployment: do not merge with docker-compose.yml.
+# Requires Docker Compose v2, Linux amd64 and pre-provisioned Azure databases.
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-jwt: &jwt
+  JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?required}
+  JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
+  JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
+
+x-ca: &ca
+  type: bind
+  source: ${AZURE_PG_CA_FILE:?set path to Azure CA PEM bundle}
+  target: /app/certs/azure-postgres-ca.pem
+  read_only: true
+  bind:
+    create_host_path: false
+
+services:
+  rabbitmq:
+    <<: *runtime
+    image: rabbitmq:3-management
+    mem_limit: 512m
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-mytruyen}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?required}
+    ports: ["127.0.0.1:15672:15672"]
+    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  meilisearch:
+    <<: *runtime
+    image: getmeili/meilisearch:v1.15
+    mem_limit: 768m
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?required}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_MAX_INDEXING_MEMORY: "256 MiB"
+      MEILI_MAX_INDEXING_THREADS: "1"
+    volumes: [meili-data:/meili_data]
+
+  identity-service:
+    <<: *runtime
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-identity-service:${IMAGE_TAG:?set sha-FULL_COMMIT_SHA}
+    platform: linux/amd64
+    mem_limit: 512m
+    environment:
+      <<: *jwt
+      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_identity?sslmode=verify-full&sslrootcert=/app/certs/azure-postgres-ca.pem&connectTimeout=10&tcpKeepAlive=true"
+      DB_USERNAME: identity_app
+      DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?required}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx256m -XX:+ExitOnOutOfMemoryError"
+      JWT_PRIVATE_KEY_BASE64: ${JWT_PRIVATE_KEY_BASE64:?required}
+      JWT_ACCESS_SECONDS: ${JWT_ACCESS_SECONDS:-900}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-7}
+      BOOTSTRAP_ADMIN_ENABLED: ${BOOTSTRAP_ADMIN_ENABLED:-false}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    volumes:
+      - *ca
+
+  catalog-service:
+    <<: *runtime
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-catalog-service:${IMAGE_TAG:?set sha-FULL_COMMIT_SHA}
+    platform: linux/amd64
+    mem_limit: 640m
+    environment:
+      <<: *jwt
+      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_catalog?sslmode=verify-full&sslrootcert=/app/certs/azure-postgres-ca.pem&connectTimeout=10&tcpKeepAlive=true"
+      DB_USERNAME: catalog_app
+      DB_PASSWORD: ${CATALOG_DB_PASSWORD:?required}
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: "1"
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      SEARCH_SYNC_ENABLED: "true"
+      LEGACY_WORKER_COMPAT_ENABLED: ${LEGACY_WORKER_COMPAT_ENABLED:-false}
+      LEGACY_WORKER_STATUS_MAP: '${LEGACY_WORKER_STATUS_MAP:-}'
+      RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-mytruyen}
+      RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?required}
+    volumes:
+      - *ca
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  search-service:
+    <<: *runtime
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-search-service:${IMAGE_TAG:?required}
+    platform: linux/amd64
+    mem_limit: 256m
+    environment:
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_SEARCH_KEY:?required}
+      CATALOG_URL: http://catalog-service:8082
+      RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
+    depends_on:
+      catalog-service:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  search-indexer:
+    <<: *runtime
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-search-service:${IMAGE_TAG:?required}
+    platform: linux/amd64
+    mem_limit: 256m
+    command: ["python", "-m", "app.sync.worker"]
+    environment:
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_WRITE_KEY:?required}
+      CATALOG_URL: http://catalog-service:8082
+      RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
+    depends_on:
+      catalog-service:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  mytruyen-gateway:
+    <<: *runtime
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-gateway:${IMAGE_TAG:?required}
+    platform: linux/amd64
+    mem_limit: 384m
+    environment:
+      <<: *jwt
+      JAVA_TOOL_OPTIONS: "-Xms64m -Xmx192m -XX:+ExitOnOutOfMemoryError"
+      IDENTITY_SERVICE_URI: http://identity-service:8081
+      CATALOG_SERVICE_URI: http://catalog-service:8082
+      SEARCH_SERVICE_URI: http://search-service:8000
+      # Engagement is unavailable in this deployment; never point it at another service.
+      ENGAGEMENT_SERVICE_URI: http://127.0.0.1:9
+      JWT_ALGORITHM: RS256
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:?set frontend HTTPS origin}
+    ports: ["127.0.0.1:${GATEWAY_PORT:-8080}:8080"]
+    depends_on:
+      - identity-service
+      - catalog-service
+      - search-service
+
+  worker:
+    <<: *runtime
+    profiles: [worker]
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-worker:${IMAGE_TAG:?required}
+    platform: linux/amd64
+    mem_limit: 256m
+    environment:
+      GOMEMLIMIT: "192MiB"
+      MYTRUYEN_BACKEND: http://mytruyen-gateway:8080/api/v1
+      MYTRUYEN_BACKEND_MODE: compat
+      MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
+      MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}
+      METRUYEN_BACKEND: ${METRUYEN_BACKEND:-}
+      METRUYEN_EMAIL: ${METRUYEN_EMAIL:-}
+      METRUYEN_PASSWORD: ${METRUYEN_PASSWORD:-}
+      RABBITMQ_URL: ${APP_RABBITMQ_URL:?required}
+      RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
+      CRAWL_CONCURRENCY: "1"
+      HTTP_TIMEOUT: 30s
+    depends_on:
+      mytruyen-gateway:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  rabbitmq-data:
+  meili-data:
+

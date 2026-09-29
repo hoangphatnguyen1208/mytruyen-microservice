@@ -37,6 +37,8 @@ out/
 .vscode/
 .env
 .env.jwt.local
+.env.azure
+/certs/
 .venv/
 **/.venv/
 __pycache__/
