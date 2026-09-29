@@ -15,9 +15,12 @@ can return 5xx; do not expose those features in the frontend.
 - Separate databases `mytruyen_identity`/`mytruyen_catalog`, owned by login roles
   `identity_app`/`catalog_app`, with separate passwords and database access grants.
   Application roles need schema creation rights for Flyway. Do not use Azure admin.
-- A readable PEM root-CA bundle from current Azure TLS documentation at
-  `AZURE_PG_CA_FILE`. Both JDBC URLs enforce `verify-full`; missing bind files fail
-  instead of silently becoming directories. Maintain the bundle during CA rotation.
+- No separate CA file or certificate mount is required. Both JDBC URLs use
+  `sslmode=require` at the operator's request: TLS encryption is required, but
+  PostgreSQL JDBC does not verify the server certificate or hostname in this mode.
+  This is weaker than `verify-full` and does not protect against server impersonation.
+  Keep Azure TLS enabled and restrict network access; these do not replace identity
+  verification. To restore verification, configure trusted roots and `verify-full`.
   https://learn.microsoft.com/en-us/azure/postgresql/security/security-tls-how-to-connect
 - Back up and rehearse data migration if an existing database is being moved.
   Flyway migrates schema, not old application data. Never overwrite an existing DB.

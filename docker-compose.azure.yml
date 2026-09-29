@@ -13,14 +13,6 @@ x-jwt: &jwt
   JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}
   JWT_AUDIENCE: ${JWT_AUDIENCE:-mytruyen-api}
 
-x-ca: &ca
-  type: bind
-  source: ${AZURE_PG_CA_FILE:?set path to Azure CA PEM bundle}
-  target: /app/certs/azure-postgres-ca.pem
-  read_only: true
-  bind:
-    create_host_path: false
-
 services:
   rabbitmq:
     <<: *runtime
@@ -56,7 +48,8 @@ services:
     mem_limit: 512m
     environment:
       <<: *jwt
-      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_identity?sslmode=verify-full&sslrootcert=/app/certs/azure-postgres-ca.pem&connectTimeout=10&tcpKeepAlive=true"
+      # TLS encryption only; require does not verify server identity in PostgreSQL JDBC.
+      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_identity?sslmode=require&connectTimeout=10&tcpKeepAlive=true"
       DB_USERNAME: identity_app
       DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?required}
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
@@ -68,8 +61,6 @@ services:
       BOOTSTRAP_ADMIN_ENABLED: ${BOOTSTRAP_ADMIN_ENABLED:-false}
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
-    volumes:
-      - *ca
 
   catalog-service:
     <<: *runtime
@@ -78,7 +69,8 @@ services:
     mem_limit: 640m
     environment:
       <<: *jwt
-      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_catalog?sslmode=verify-full&sslrootcert=/app/certs/azure-postgres-ca.pem&connectTimeout=10&tcpKeepAlive=true"
+      # TLS encryption only; require does not verify server identity in PostgreSQL JDBC.
+      DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_catalog?sslmode=require&connectTimeout=10&tcpKeepAlive=true"
       DB_USERNAME: catalog_app
       DB_PASSWORD: ${CATALOG_DB_PASSWORD:?required}
       SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: "5"
@@ -91,8 +83,6 @@ services:
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER:-mytruyen}
       RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS:?required}
-    volumes:
-      - *ca
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -183,4 +173,3 @@ services:
 volumes:
   rabbitmq-data:
   meili-data:
-
