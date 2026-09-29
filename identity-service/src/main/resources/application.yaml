@@ -1,6 +1,12 @@
 server:
   port: ${IDENTITY_PORT:${PORT:8001}}
 
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+
 spring:
   application:
     name: identity-service

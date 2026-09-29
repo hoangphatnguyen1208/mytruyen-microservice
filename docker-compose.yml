@@ -70,8 +70,11 @@ services:
 
   identity-service:
     build: ./identity-service
+    ports:
+      - "127.0.0.1:${IDENTITY_PORT:-8001}:${IDENTITY_PORT:-8001}"
     environment:
       IDENTITY_PORT: ${IDENTITY_PORT:-8001}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_POSTGRES_DB:-mytruyen_identity}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}

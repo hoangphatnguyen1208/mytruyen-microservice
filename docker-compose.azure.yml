@@ -48,6 +48,7 @@ services:
     mem_limit: 512m
     environment:
       IDENTITY_PORT: ${IDENTITY_PORT:-8001}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       <<: *jwt
       # TLS encryption only; require does not verify server identity in PostgreSQL JDBC.
       DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_identity?sslmode=require&connectTimeout=10&tcpKeepAlive=true"
