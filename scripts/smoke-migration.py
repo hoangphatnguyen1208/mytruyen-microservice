@@ -96,7 +96,7 @@ def run(base_url, check_topboxes=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://localhost:8080")
+    parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--check-topboxes", action="store_true", help="Also require the external topboxes provider")
     args = parser.parse_args()
     run(args.base_url, args.check_topboxes)

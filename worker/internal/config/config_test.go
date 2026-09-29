@@ -3,7 +3,7 @@ package config
 import "testing"
 
 func TestLoad(t *testing.T) {
-	valid := map[string]string{"MYTRUYEN_BACKEND": "http://localhost:8080/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test", "METRUYEN_BACKEND": "https://example.test/api", "METRUYEN_EMAIL": "worker@example.test", "METRUYEN_PASSWORD": "test", "RABBITMQ_URL": "amqp://localhost", "RABBITMQ_QUEUE_CRAWL": "crawl"}
+	valid := map[string]string{"MYTRUYEN_BACKEND": "http://localhost:8000/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test", "METRUYEN_BACKEND": "https://example.test/api", "METRUYEN_EMAIL": "worker@example.test", "METRUYEN_PASSWORD": "test", "RABBITMQ_URL": "amqp://localhost", "RABBITMQ_QUEUE_CRAWL": "crawl"}
 	if c, err := Load(func(k string) string { return valid[k] }); err != nil || c.Concurrency != 2 || c.BackendMode != "legacy" {
 		t.Fatalf("defaults: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestLoad(t *testing.T) {
 
 func TestImportConfigurationDoesNotRequireQueueSettings(t *testing.T) {
 	values := map[string]string{
-		"MYTRUYEN_BACKEND": "http://localhost:8080/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test",
+		"MYTRUYEN_BACKEND": "http://localhost:8000/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test",
 		"METRUYEN_BACKEND": "https://example.test/api", "METRUYEN_EMAIL": "worker@example.test", "METRUYEN_PASSWORD": "test",
 	}
 	c, err := LoadImport(func(key string) string { return values[key] })

@@ -71,6 +71,7 @@ services:
   identity-service:
     build: ./identity-service
     environment:
+      IDENTITY_PORT: ${IDENTITY_PORT:-8001}
       DB_URL: jdbc:postgresql://identity-db:5432/${IDENTITY_POSTGRES_DB:-mytruyen_identity}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -90,6 +91,7 @@ services:
   catalog-service:
     build: ./catalog-service
     environment:
+      CATALOG_PORT: ${CATALOG_PORT:-8002}
       SEARCH_SYNC_ENABLED: "true"
       LEGACY_WORKER_COMPAT_ENABLED: ${LEGACY_WORKER_COMPAT_ENABLED:-false}
       RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
@@ -112,6 +114,7 @@ services:
   engagement-service:
     build: ./engagement-service
     environment:
+      ENGAGEMENT_PORT: ${ENGAGEMENT_PORT:-8004}
       DB_URL: jdbc:postgresql://engagement-db:5432/${ENGAGEMENT_POSTGRES_DB:-mytruyen_engagement}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -127,9 +130,10 @@ services:
   search-service:
     build: ./search-service
     environment:
+      SEARCH_PORT: ${SEARCH_PORT:-8003}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_SEARCH_KEY:-${MEILI_MASTER_KEY}}
-      CATALOG_URL: http://catalog-service:8082
+      CATALOG_URL: http://catalog-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
     depends_on:
       meilisearch:
@@ -146,7 +150,7 @@ services:
     environment:
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_WRITE_KEY:-${MEILI_MASTER_KEY}}
-      CATALOG_URL: http://catalog-service:8082
+      CATALOG_URL: http://catalog-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
     depends_on:
       meilisearch:
@@ -161,7 +165,7 @@ services:
     build: ./worker
     restart: unless-stopped
     environment:
-      MYTRUYEN_BACKEND: http://mytruyen-gateway:8080/api/v1
+      MYTRUYEN_BACKEND: http://mytruyen-gateway:${GATEWAY_PORT:-8000}/api/v1
       MYTRUYEN_BACKEND_MODE: compat
       MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
       MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}
@@ -180,12 +184,13 @@ services:
 
   mytruyen-gateway:
     build: ./mytruyen-gateway
-    ports: ["${GATEWAY_BIND_ADDRESS:-0.0.0.0}:${GATEWAY_PORT:-8080}:8080"]
+    ports: ["${GATEWAY_BIND_ADDRESS:-0.0.0.0}:${GATEWAY_PORT:-8000}:${GATEWAY_PORT:-8000}"]
     environment:
-      IDENTITY_SERVICE_URI: http://identity-service:8081
-      CATALOG_SERVICE_URI: http://catalog-service:8082
-      ENGAGEMENT_SERVICE_URI: http://engagement-service:8083
-      SEARCH_SERVICE_URI: http://search-service:8000
+      GATEWAY_PORT: ${GATEWAY_PORT:-8000}
+      IDENTITY_SERVICE_URI: http://identity-service:${IDENTITY_PORT:-8001}
+      CATALOG_SERVICE_URI: http://catalog-service:${CATALOG_PORT:-8002}
+      ENGAGEMENT_SERVICE_URI: http://engagement-service:${ENGAGEMENT_PORT:-8004}
+      SEARCH_SERVICE_URI: http://search-service:${SEARCH_PORT:-8003}
       JWT_PUBLIC_KEY_BASE64: ${JWT_PUBLIC_KEY_BASE64:?set JWT_PUBLIC_KEY_BASE64}
       JWT_ALGORITHM: RS256
       JWT_ISSUER: ${JWT_ISSUER:-mytruyen-auth}

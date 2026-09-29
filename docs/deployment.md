@@ -38,7 +38,7 @@ Giữ cùng project name qua các release để gắn đúng volumes; nếu hệ
 | `MEILI_WRITE_KEY` | Key indexer: đọc/tạo index `books`, cập nhật settings, thêm/xóa documents và đọc task status |
 | `REDIS_PASSWORD` | Secret riêng; Redis chưa tham gia luồng Search mới |
 | `FRONTEND_ORIGIN` | Origin frontend HTTPS chính xác, không wildcard |
-| `GATEWAY_BIND_ADDRESS`, `GATEWAY_PORT` | `127.0.0.1`, `8080` khi proxy ở host; không dùng loopback này nếu proxy chạy container khác |
+| `GATEWAY_BIND_ADDRESS`, `GATEWAY_PORT` | `127.0.0.1`, `8000` khi proxy ở host; không dùng loopback này nếu proxy chạy container khác |
 | `RABBITMQ_MANAGEMENT_PORT` | Mặc định 15672, Compose chỉ bind loopback; dùng SSH tunnel khi cần quản trị từ xa |
 
 Sinh JWT trên máy quản trị Windows:
@@ -128,7 +128,7 @@ docker compose logs --tail=100 search-indexer
 
 ## 6. Ingress HTTPS và xác nhận trước mở traffic
 
-Reverse proxy chỉ chuyển API tới `http://127.0.0.1:8080`. Cài TLS/certificate renewal theo hệ thống vận hành; redirect HTTP sang HTTPS, giới hạn request body phù hợp content tối đa 1 triệu ký tự, đặt timeout và rate limit riêng cho login/register/search. Không log Authorization, password hoặc nội dung request nhạy cảm. Gateway hiện chưa tự rate-limit; Redis chỉ được dự phòng, không đồng nghĩa giới hạn tốc độ đã bật.
+Reverse proxy chỉ chuyển API tới `http://127.0.0.1:8000`. Cài TLS/certificate renewal theo hệ thống vận hành; redirect HTTP sang HTTPS, giới hạn request body phù hợp content tối đa 1 triệu ký tự, đặt timeout và rate limit riêng cho login/register/search. Không log Authorization, password hoặc nội dung request nhạy cảm. Gateway hiện chưa tự rate-limit; Redis chỉ được dự phòng, không đồng nghĩa giới hạn tốc độ đã bật.
 
 Các kiểm tra read-only qua domain HTTPS:
 

@@ -8,10 +8,12 @@ Pagination deliberately retains the old estimatedTotalHits semantics. With a sta
 
 ## Runtime
 
+- SEARCH_PORT: Docker HTTP listener port, default 8003. For a local CLI run, pass `--port 8003` (or the desired port) explicitly.
+
 - MEILI_URL: default http://localhost:7700.
 - MEILI_MASTER_KEY: secret used only for Meilisearch requests; use a restricted search key in deployment when available.
 - MEILI_INDEX: default books (alphanumeric, underscore, hyphen).
-- CATALOG_URL: default http://localhost:8082.
+- CATALOG_URL: default http://localhost:8002.
 - REQUEST_TIMEOUT: total search-operation deadline in seconds, default 5, maximum 30.
 
 HTTP connections are pooled, redirects disabled, response bodies capped at 8 MB. Dependency failures return sanitized 503, timeouts 504, malformed/oversized responses 502. /health is process liveness, not dependency readiness.

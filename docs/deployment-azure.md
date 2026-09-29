@@ -27,6 +27,16 @@ can return 5xx; do not expose those features in the frontend.
 
 ## Configuration and initial startup
 
+HTTP ports are controlled by `.env.azure`: `GATEWAY_PORT=8000`,
+`IDENTITY_PORT=8001`, `CATALOG_PORT=8002`, `SEARCH_PORT=8003`.
+The local stack also supports `ENGAGEMENT_PORT=8004`. Compose passes each port
+to its application and uses the same value in internal URLs. Only Gateway is
+published on the host. Search indexer and Go worker do not serve HTTP ports.
+Changing Gateway port also requires updating the host reverse proxy.
+Use newly published images containing this port configuration; old images may
+ignore these variables. Keep the same project name and recreate services after
+changing ports. Broker/Meili ports are unchanged.
+
 ```bash
 cp .env.azure.example .env.azure
 chmod 600 .env.azure
@@ -83,7 +93,7 @@ stop all index writers and pause Catalog writes for the rebuild. Environment
 variables override env-file values: do not keep unrelated secrets exported.
 
 Validate login, protected/public APIs and search via Gateway, then enable host
-HTTPS proxy to `127.0.0.1:8080`. Only Gateway and Rabbit management bind loopback;
+HTTPS proxy to `127.0.0.1:8000`. Only Gateway and Rabbit management bind loopback;
 no database/broker AMQP/Meili ports are published. Restrict SSH and expose only
 needed web ports. Do not run destructive smoke scripts against production.
 

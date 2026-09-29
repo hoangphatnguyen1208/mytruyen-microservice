@@ -44,7 +44,7 @@ Copy the generated key values from `.env.jwt.local` into `.env`, set non-default
 docker compose up --build
 ```
 
-The public Gateway listens on `http://localhost:8080`. RabbitMQ management is available on `http://localhost:15672` for local development.
+The public Gateway listens on `http://localhost:8000`. RabbitMQ management is available on `http://localhost:15672` for local development.
 
 ## Build and test
 
