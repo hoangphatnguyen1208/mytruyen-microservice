@@ -1,7 +1,5 @@
 # MyTruyen Microservices
 
-This repository is being migrated from `mytruyen-be` with a strangler-style, service-by-service rollout. The detailed roadmap is in [MIGRATION_PLAN.md](MIGRATION_PLAN.md).
-
 ## Target services
 
 | Directory | Runtime | Responsibility | Current phase |

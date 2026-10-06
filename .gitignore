@@ -47,3 +47,6 @@ __pycache__/
 **/.pytest_cache/
 *.egg-info/
 **/*.egg-info/
+
+# Local project documentation
+/docs/
