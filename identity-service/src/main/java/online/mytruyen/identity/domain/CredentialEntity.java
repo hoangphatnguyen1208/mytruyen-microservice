@@ -2,18 +2,27 @@ package online.mytruyen.identity.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
-import java.util.*;
+import java.util.UUID;
 
 @Entity(name = "IdentityCredential")
 @Table(name = "user_credentials")
-@Getter @Setter @NoArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
 public class CredentialEntity {
-    @Id @Column(name = "user_id") private UUID id;
-    @MapsId @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id") private UserEntity user;
-    @Column(name = "password_hash", nullable = false, columnDefinition = "text") private String passwordHash;
-    @Column(name = "password_changed_at", nullable = false) private Instant passwordChangedAt;
+    @Id
+    @Column(name = "user_id")
+    private UUID id;
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+    @Column(name = "password_hash", nullable = false, columnDefinition = "text")
+    private String passwordHash;
+    @Column(name = "password_changed_at", nullable = false)
+    private Instant passwordChangedAt;
 }

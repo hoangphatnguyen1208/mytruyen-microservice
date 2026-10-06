@@ -3,13 +3,16 @@ package online.mytruyen.identity.service;
 import online.mytruyen.identity.domain.CredentialEntity;
 import online.mytruyen.identity.domain.UserEntity;
 import online.mytruyen.identity.exception.ApiError;
-
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 import static online.mytruyen.identity.dto.Contracts.*;
 
 @Service
@@ -22,7 +25,9 @@ public class AccountService {
         this.passwords = passwords;
     }
 
-    static String normalize(String value) { return value == null ? null : value.trim().toLowerCase(Locale.ROOT); }
+    static String normalize(String value) {
+        return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
+    }
 
     static void validPassword(String value) {
         if (value == null || value.length() < 8 || value.isBlank() || value.getBytes(StandardCharsets.UTF_8).length > 72)
@@ -30,10 +35,14 @@ public class AccountService {
     }
 
     @Transactional
-    public UserView register(Register input) { return create(input.email(), input.username(), input.password(), List.of(1)); }
+    public UserView register(Register input) {
+        return create(input.email(), input.username(), input.password(), List.of(1));
+    }
 
     @Transactional
-    public UserView adminCreate(AdminCreate input) { return create(input.email(), input.username(), input.password(), input.roles()); }
+    public UserView adminCreate(AdminCreate input) {
+        return create(input.email(), input.username(), input.password(), input.roles());
+    }
 
     private UserView create(String email, String username, String password, List<Integer> roles) {
         validPassword(password);
@@ -42,7 +51,9 @@ public class AccountService {
         return store.view(user);
     }
 
-    public UserView get(UUID id) { return store.user(id); }
+    public UserView get(UUID id) {
+        return store.user(id);
+    }
 
     public UserPage list(int page, int size) {
         if (page < 0 || size < 1 || size > 100) throw new ApiError(400, "page must be >= 0 and size between 1 and 100");
@@ -61,14 +72,16 @@ public class AccountService {
 
     private void keepAdmin(UserEntity user) {
         if (!user.isActive() || user.getRoles().stream().noneMatch(r -> r.getId() == 2)) return;
-        if (store.activeAdmins(user.getId()) == 0) throw new ApiError(409, "Cannot remove the last active administrator");
+        if (store.activeAdmins(user.getId()) == 0)
+            throw new ApiError(409, "Cannot remove the last active administrator");
     }
 
     @Transactional
     public UserView adminUpdate(UUID id, AdminUpdate input) {
         store.lockAdminPolicy();
         UserEntity user = store.lock(id);
-        if (Boolean.FALSE.equals(input.is_active()) || (input.roles() != null && !input.roles().contains(2))) keepAdmin(user);
+        if (Boolean.FALSE.equals(input.is_active()) || (input.roles() != null && !input.roles().contains(2)))
+            keepAdmin(user);
         if (input.is_active() != null) user.setActive(input.is_active());
         if (input.full_name() != null) user.setFullName(input.full_name().trim());
         if (input.roles() != null) store.setRoles(user, input.roles());
@@ -95,7 +108,8 @@ public class AccountService {
         validPassword(input.new_password());
         UserEntity user = store.lock(id);
         CredentialEntity credential = store.credential(id);
-        if (!passwords.matches(input.current_password(), credential.getPasswordHash())) throw new ApiError(401, "Invalid current password");
+        if (!passwords.matches(input.current_password(), credential.getPasswordHash()))
+            throw new ApiError(401, "Invalid current password");
         credential.setPasswordHash(passwords.encode(input.new_password()));
         credential.setPasswordChangedAt(Instant.now());
         store.revoke(id);

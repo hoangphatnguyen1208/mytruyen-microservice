@@ -3,18 +3,21 @@ package online.mytruyen.identity.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
     @Bean
-    PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter filter) throws Exception {
         return http
@@ -25,15 +28,16 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
-                            "/api/v1/auth/login", "/api/v1/auth/login/access-token", "/api/v1/auth/register",
-                            "/api/v1/auth/refresh-token", "/api/v1/auth/logout").permitAll()
+                                "/api/v1/auth/login", "/api/v1/auth/login/access-token", "/api/v1/auth/register",
+                                "/api/v1/auth/refresh-token", "/api/v1/auth/logout").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
-                    .authenticationEntryPoint((req,res,ex) -> JwtFilter.failure(res,401,"Authentication required"))
-                    .accessDeniedHandler((req,res,ex) -> JwtFilter.failure(res,403,"Access denied")))
+                        .authenticationEntryPoint((req, res, ex) -> JwtFilter.failure(res, 401, "Authentication required"))
+                        .accessDeniedHandler((req, res, ex) -> JwtFilter.failure(res, 403, "Access denied")))
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
+
     @Bean
     org.springframework.boot.web.servlet.FilterRegistrationBean<JwtFilter> jwtRegistration(JwtFilter filter) {
         var registration = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(filter);

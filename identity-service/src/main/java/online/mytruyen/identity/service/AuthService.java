@@ -7,16 +7,22 @@ import online.mytruyen.identity.exception.ApiError;
 import online.mytruyen.identity.repository.RefreshTokenRepository;
 import online.mytruyen.identity.repository.SessionRepository;
 import online.mytruyen.identity.security.JwtService;
-
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.security.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Optional;
+import java.util.UUID;
+
 import static online.mytruyen.identity.dto.Contracts.*;
 
 @Service
@@ -43,9 +49,18 @@ public class AuthService {
         dummyHash = passwords.encode(UUID.randomUUID().toString());
     }
 
+    static String digest(String token) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     @Transactional
     public Token login(Login input) {
-        if (input.password().getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiError(401, "Invalid credentials");
+        if (input.password().getBytes(StandardCharsets.UTF_8).length > 72)
+            throw new ApiError(401, "Invalid credentials");
         Optional<UUID> id = store.loginId(AccountService.normalize(input.email()));
         if (id.isEmpty()) {
             passwords.matches(input.password(), dummyHash);
@@ -63,17 +78,16 @@ public class AuthService {
         return issue(store.view(user), session);
     }
 
-    public static class Reuse extends ApiError {
-        public Reuse() { super(401, "Refresh token reuse detected; session revoked"); }
-    }
-
     @Transactional(noRollbackFor = Reuse.class)
     public Token refresh(String raw) {
         var reference = tokens.reference(digest(raw)).orElseThrow(() -> new ApiError(401, "Invalid refresh token"));
         // Scalar lookup above deliberately does not hydrate the token before acquiring locks.
         UserEntity user;
-        try { user = store.lock(reference.getUserId()); }
-        catch (ApiError e) { throw new ApiError(401, "Invalid refresh token"); }
+        try {
+            user = store.lock(reference.getUserId());
+        } catch (ApiError e) {
+            throw new ApiError(401, "Invalid refresh token");
+        }
         SessionEntity session = sessions.lockById(reference.getSessionId()).orElseThrow(() -> new ApiError(401, "Invalid refresh token"));
         RefreshTokenEntity token = tokens.lockByHash(digest(raw)).orElseThrow(() -> new ApiError(401, "Invalid refresh token"));
         if (token.getUsedAt() != null) {
@@ -99,7 +113,10 @@ public class AuthService {
     }
 
     @Transactional
-    public void logoutAll(UUID id) { store.lock(id); store.revoke(id); }
+    public void logoutAll(UUID id) {
+        store.lock(id);
+        store.revoke(id);
+    }
 
     private Token issue(UserView user, SessionEntity session) {
         byte[] bytes = new byte[32];
@@ -115,8 +132,9 @@ public class AuthService {
         return new Token(jwt.issue(user, session.getId()), raw, "bearer", jwt.accessTokenTtl());
     }
 
-    static String digest(String token) {
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))); }
-        catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+    public static class Reuse extends ApiError {
+        public Reuse() {
+            super(401, "Refresh token reuse detected; session revoked");
+        }
     }
 }

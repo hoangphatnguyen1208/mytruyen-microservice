@@ -5,18 +5,15 @@ import online.mytruyen.identity.domain.OutboxEventEntity;
 import online.mytruyen.identity.domain.RoleEntity;
 import online.mytruyen.identity.domain.UserEntity;
 import online.mytruyen.identity.exception.ApiError;
-import online.mytruyen.identity.repository.CredentialRepository;
-import online.mytruyen.identity.repository.OutboxEventRepository;
-import online.mytruyen.identity.repository.RoleRepository;
-import online.mytruyen.identity.repository.SessionRepository;
-import online.mytruyen.identity.repository.UserRepository;
-
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import online.mytruyen.identity.repository.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.*;
+
 import static online.mytruyen.identity.dto.Contracts.*;
 
 @Component
@@ -37,7 +34,9 @@ public class IdentityStore {
     }
 
     @Transactional(readOnly = true)
-    public List<String> roles(UUID id) { return roleCodes(required(id)); }
+    public List<String> roles(UUID id) {
+        return roleCodes(required(id));
+    }
 
     private List<String> roleCodes(UserEntity user) {
         return user.getRoles().stream().sorted(Comparator.comparing(RoleEntity::getId))
@@ -45,7 +44,9 @@ public class IdentityStore {
     }
 
     @Transactional(readOnly = true)
-    public UserView user(UUID id) { return view(required(id)); }
+    public UserView user(UUID id) {
+        return view(required(id));
+    }
 
     UserView view(UserEntity user) {
         return new UserView(user.getId(), user.getEmail(), user.getUsername(), user.getFullName(),
@@ -66,10 +67,21 @@ public class IdentityStore {
         return users.lockById(id).orElseThrow(() -> new ApiError(404, "User not found"));
     }
 
-    public Optional<UUID> loginId(String email) { return users.findLoginId(email); }
-    public void lockAdminPolicy() { roles.lockAdminRole(); }
-    public long activeAdmins(UUID excluded) { return users.countActiveAdmins(excluded); }
-    public void revoke(UUID id) { sessions.revokeAll(id, Instant.now()); }
+    public Optional<UUID> loginId(String email) {
+        return users.findLoginId(email);
+    }
+
+    public void lockAdminPolicy() {
+        roles.lockAdminRole();
+    }
+
+    public long activeAdmins(UUID excluded) {
+        return users.countActiveAdmins(excluded);
+    }
+
+    public void revoke(UUID id) {
+        sessions.revokeAll(id, Instant.now());
+    }
 
     public CredentialEntity credential(UUID id) {
         return credentials.findById(id).orElseThrow(() -> new ApiError(401, "Invalid credentials"));
@@ -100,7 +112,9 @@ public class IdentityStore {
     }
 
     // Dirty the aggregate even when only credentials changed. Hibernate owns @Version.
-    public void touch(UserEntity user) { user.setUpdatedAt(Instant.now()); }
+    public void touch(UserEntity user) {
+        user.setUpdatedAt(Instant.now());
+    }
 
     public void event(UserEntity user, String type) {
         // Flush first so the event records Hibernate's actual aggregate version.

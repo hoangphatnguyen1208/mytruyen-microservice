@@ -1,13 +1,10 @@
 package online.mytruyen.identity.repository;
 
-import online.mytruyen.identity.domain.RoleEntity;
-
-import org.springframework.data.jpa.repository.*;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.domain.*;
 import jakarta.persistence.LockModeType;
-import java.time.Instant;
-import java.util.*;
+import online.mytruyen.identity.domain.RoleEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 
 public interface RoleRepository extends JpaRepository<RoleEntity, Short> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
