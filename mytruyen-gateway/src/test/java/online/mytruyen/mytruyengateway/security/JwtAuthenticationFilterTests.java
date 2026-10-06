@@ -104,7 +104,7 @@ class JwtAuthenticationFilterTests {
 
     @Test
     void importLookupIsNotPublic() {
-        var exchange=MockServerWebExchange.from(MockServerHttpRequest.get("/api/v1/internal/import/books/metruyencv/123").build());
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api/v1/internal/import/books/metruyencv/123").build());
         StepVerifier.create(filter.filter(exchange, ignored -> Mono.empty())).verifyComplete();
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
@@ -112,8 +112,8 @@ class JwtAuthenticationFilterTests {
     @Test
     void statisticsArePublicButAdminStatisticsRequireAuthentication() {
         assertPublicRequest(MockServerHttpRequest.get("/api/v1/stats/books/count").build());
-        var exchange=MockServerWebExchange.from(
-            MockServerHttpRequest.get("/api/v1/admin/catalog/stats/books/count").build());
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/admin/catalog/stats/books/count").build());
         StepVerifier.create(filter.filter(exchange, ignored -> Mono.empty())).verifyComplete();
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
