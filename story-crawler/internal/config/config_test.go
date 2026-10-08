@@ -4,7 +4,7 @@ import "testing"
 
 func TestLoad(t *testing.T) {
 	valid := map[string]string{"MYTRUYEN_BACKEND": "http://localhost:8000/api/v1", "MYTRUYEN_EMAIL": "worker@example.test", "MYTRUYEN_PASSWORD": "test", "METRUYEN_BACKEND": "https://example.test/api", "METRUYEN_EMAIL": "worker@example.test", "METRUYEN_PASSWORD": "test", "RABBITMQ_URL": "amqp://localhost", "RABBITMQ_QUEUE_CRAWL": "crawl"}
-	if c, err := Load(func(k string) string { return valid[k] }); err != nil || c.Concurrency != 2 || c.BackendMode != "legacy" {
+	if c, err := Load(func(k string) string { return valid[k] }); err != nil || c.Concurrency != 2 || c.BackendMode != "internal" {
 		t.Fatalf("defaults: %v", err)
 	}
 	for key, value := range map[string]string{"MYTRUYEN_BACKEND_MODE": "unknown", "MYTRUYEN_BACKEND": "file:///tmp", "MYTRUYEN_PASSWORD": "", "RABBITMQ_URL": "https://localhost", "RABBITMQ_QUEUE_CRAWL": "", "CRAWL_CONCURRENCY": "0", "HTTP_TIMEOUT": "-1s"} {

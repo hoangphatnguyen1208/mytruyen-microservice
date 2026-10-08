@@ -56,10 +56,10 @@ func Load(get func(string) string) (Config, error) {
 	c.Concurrency = 2
 	c.BackendMode = get("MYTRUYEN_BACKEND_MODE")
 	if c.BackendMode == "" {
-		c.BackendMode = "legacy"
+		c.BackendMode = "internal"
 	}
-	if c.BackendMode != "legacy" && c.BackendMode != "compat" {
-		return c, fmt.Errorf("MYTRUYEN_BACKEND_MODE must be legacy or compat")
+	if c.BackendMode != "internal" {
+		return c, fmt.Errorf("MYTRUYEN_BACKEND_MODE must be internal")
 	}
 	u, err := url.Parse(c.RabbitURL)
 	if err != nil || u.Host == "" || (u.Scheme != "amqp" && u.Scheme != "amqps") {

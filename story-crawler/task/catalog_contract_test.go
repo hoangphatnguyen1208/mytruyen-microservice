@@ -63,7 +63,7 @@ func TestCatalogCompatibilityContract(t *testing.T) {
 	defer source.Close()
 	s := resty.New().SetBaseURL(source.URL).SetTimeout(10 * time.Second)
 	b := resty.New().SetBaseURL(base).SetAuthToken(jwt).SetTimeout(10 * time.Second)
-	httpclient.UseWorkerCompatibilityEndpoints(b, base)
+	httpclient.UseInternalImportEndpoints(b, base)
 	for i := 0; i < 2; i++ {
 		if !GenresHandler(s, b, 1) || !TagsHandler(s, b, 1) || !BookStatusHandler(s, b, 1) {
 			t.Fatal("reference handlers failed")
