@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
@@ -29,9 +30,9 @@ public class SearchOutboxPublisher {
         for (var event : batch) {
             String payload = "{\"schema_version\":1,\"book_id\":" + event.getBookId() + "}";
             var message = MessageBuilder.withBody(payload.getBytes(StandardCharsets.UTF_8))
-                .setContentType(MessageProperties.CONTENT_TYPE_JSON)
-                .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
-                .setMessageId(event.getEventId().toString()).build();
+                    .setContentType(MessageProperties.CONTENT_TYPE_JSON)
+                    .setDeliveryMode(MessageDeliveryMode.PERSISTENT)
+                    .setMessageId(event.getEventId().toString()).build();
             var correlation = new CorrelationData(event.getEventId().toString());
             rabbit.send(SearchMessagingConfig.EXCHANGE, "book.changed", message, correlation);
             var confirmation = correlation.getFuture().get(5, TimeUnit.SECONDS);

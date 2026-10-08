@@ -1,7 +1,8 @@
-CREATE TABLE legacy_worker_books (
+CREATE TABLE legacy_worker_books
+(
     external_id BIGINT PRIMARY KEY CHECK (external_id > 0),
-    book_id BIGINT NOT NULL UNIQUE REFERENCES books(id),
-    snapshot TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    book_id     BIGINT                   NOT NULL UNIQUE REFERENCES books (id),
+    snapshot    TEXT                     NOT NULL,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

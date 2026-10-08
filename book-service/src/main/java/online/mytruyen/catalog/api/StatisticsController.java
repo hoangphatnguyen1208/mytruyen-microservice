@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 public class StatisticsController {
     private final StatisticsService service;
 
-    public StatisticsController(StatisticsService service) { this.service = service; }
+    public StatisticsController(StatisticsService service) {
+        this.service = service;
+    }
 
     @GetMapping("/stats/{resource}/count")
     public Response<Long> publicCount(@PathVariable String resource) {

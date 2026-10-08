@@ -16,8 +16,8 @@ public class OpenApiConfig {
     org.springdoc.core.customizers.OpenApiCustomizer publicEndpointSecurity() {
         return api -> api.getPaths().forEach((path, item) -> {
             boolean publicRead = java.util.List.of("/api/v1/books", "/api/v1/chapters",
-                    "/api/v1/stats", "/api/v1/authors", "/api/v1/genres", "/api/v1/tags",
-                    "/api/v1/book-statuses").stream()
+                            "/api/v1/stats", "/api/v1/authors", "/api/v1/genres", "/api/v1/tags",
+                            "/api/v1/book-statuses").stream()
                     .anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"))
                     || path.equals("/api/v1/{kind}") || path.equals("/api/v1/{kind}/{slug}");
             if (publicRead && item.getGet() != null) {
@@ -25,6 +25,7 @@ public class OpenApiConfig {
             }
         });
     }
+
     @Bean
     OpenAPI serviceOpenApi() {
         return new OpenAPI()

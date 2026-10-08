@@ -5,20 +5,26 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.*;
 import jakarta.persistence.LockModeType;
+
 import java.time.Instant;
 import java.util.*;
 
 public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificationExecutor<Book> {
     @Query("select b.id from Book b where b.author.id = :authorId and b.id > :after and b.deletedAt is null order by b.id")
     List<Long> findSearchIdsByAuthor(@Param("authorId") UUID authorId, @Param("after") long after, Pageable page);
+
     @Query("select count(b) from Book b where b.deletedAt is null and (:admin = true or b.published = true)")
     long countVisible(@Param("admin") boolean admin);
+
     @EntityGraph(attributePaths = {"author", "status"})
     List<Book> findByIdInAndPublishedTrueAndDeletedAtIsNull(Collection<Long> ids);
+
     @Override
     @EntityGraph(attributePaths = {"author", "status"})
     Page<Book> findAll(org.springframework.data.jpa.domain.Specification<Book> specification, Pageable pageable);
+
     Optional<Book> findByIdAndDeletedAtIsNull(Long id);
+
     Optional<Book> findBySlugAndDeletedAtIsNull(String slug);
 
     @EntityGraph(attributePaths = {"author", "status"})

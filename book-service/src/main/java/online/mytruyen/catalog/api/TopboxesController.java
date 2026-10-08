@@ -8,7 +8,13 @@ import tools.jackson.databind.JsonNode;
 @RequestMapping("/api/v1/books/topboxes")
 public class TopboxesController {
     private final TopboxesService service;
-    public TopboxesController(TopboxesService service) { this.service=service; }
+
+    public TopboxesController(TopboxesService service) {
+        this.service = service;
+    }
+
     @GetMapping
-    public JsonNode get(@RequestParam int kind,@RequestParam int limit) { return service.get(kind,limit); }
+    public JsonNode get(@RequestParam int kind, @RequestParam int limit) {
+        return service.get(kind, limit);
+    }
 }

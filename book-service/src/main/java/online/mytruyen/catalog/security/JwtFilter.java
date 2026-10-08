@@ -9,6 +9,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import java.io.IOException;
 import java.security.*;
 import java.security.interfaces.RSAPublicKey;
@@ -18,14 +19,24 @@ import java.util.*;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
     private final JwtParser parser;
+
     public JwtFilter(@Value("${jwt.public-key}") String key,
                      @Value("${jwt.issuer}") String issuer, @Value("${jwt.audience}") String audience) throws Exception {
         var publicKey = (RSAPublicKey) KeyFactory.getInstance("RSA")
-            .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(key)));
-        if (publicKey.getModulus().bitLength() < 2048) throw new IllegalArgumentException("RSA key must be at least 2048 bits");
+                .generatePublic(new X509EncodedKeySpec(Base64.getDecoder().decode(key)));
+        if (publicKey.getModulus().bitLength() < 2048)
+            throw new IllegalArgumentException("RSA key must be at least 2048 bits");
         parser = Jwts.parserBuilder().setSigningKey(publicKey).requireIssuer(issuer).requireAudience(audience).build();
     }
-    @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+
+    static void failure(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"status_code\":" + status + ",\"success\":false,\"message\":\"" + message + "\",\"data\":null}");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header != null) {
@@ -34,7 +45,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 var parsed = parser.parseClaimsJws(header.substring(7));
                 var claims = parsed.getBody();
                 if (!"RS256".equals(parsed.getHeader().getAlgorithm()) || claims.getExpiration() == null ||
-                    claims.getIssuedAt() == null || claims.getIssuedAt().after(new Date()) || claims.getSubject() == null)
+                        claims.getIssuedAt() == null || claims.getIssuedAt().after(new Date()) || claims.getSubject() == null)
                     throw new JwtException("Invalid claims");
                 UUID id = UUID.fromString(claims.getSubject());
                 Object value = claims.get("roles");
@@ -49,10 +60,5 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
-    }
-    static void failure(HttpServletResponse response, int status, String message) throws IOException {
-        response.setStatus(status);
-        response.setContentType("application/json");
-        response.getWriter().write("{\"status_code\":" + status + ",\"success\":false,\"message\":\"" + message + "\",\"data\":null}");
     }
 }

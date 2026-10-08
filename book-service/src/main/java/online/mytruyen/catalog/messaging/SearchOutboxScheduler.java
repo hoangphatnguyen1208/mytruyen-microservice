@@ -12,7 +12,9 @@ public class SearchOutboxScheduler {
     private static final Logger log = LoggerFactory.getLogger(SearchOutboxScheduler.class);
     private final SearchOutboxPublisher publisher;
 
-    public SearchOutboxScheduler(SearchOutboxPublisher publisher) { this.publisher = publisher; }
+    public SearchOutboxScheduler(SearchOutboxPublisher publisher) {
+        this.publisher = publisher;
+    }
 
     @Scheduled(fixedDelayString = "${catalog.search-sync.poll-delay-ms:1000}")
     public void poll() {

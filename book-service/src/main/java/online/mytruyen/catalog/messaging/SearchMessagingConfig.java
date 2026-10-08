@@ -12,13 +12,14 @@ public class SearchMessagingConfig {
     public static final String EXCHANGE = "mytruyen.catalog.search.v1";
     public static final String QUEUE = "mytruyen.search.sync.v1";
 
-    @Bean Declarables searchTopology() {
+    @Bean
+    Declarables searchTopology() {
         var exchange = new DirectExchange(EXCHANGE, true, false);
         var queue = QueueBuilder.durable(QUEUE)
-            .withArgument("x-single-active-consumer", true)
-            .deadLetterExchange("").deadLetterRoutingKey(QUEUE + ".dead").build();
+                .withArgument("x-single-active-consumer", true)
+                .deadLetterExchange("").deadLetterRoutingKey(QUEUE + ".dead").build();
         var dead = QueueBuilder.durable(QUEUE + ".dead").build();
         return new Declarables(exchange, queue, dead,
-            BindingBuilder.bind(queue).to(exchange).with("book.changed"));
+                BindingBuilder.bind(queue).to(exchange).with("book.changed"));
     }
 }

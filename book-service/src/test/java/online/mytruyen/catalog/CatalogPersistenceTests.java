@@ -12,33 +12,50 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.dao.DataIntegrityViolationException;
+
 import java.time.Instant;
 import java.util.*;
+
 import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:catalog;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-    "spring.datasource.username=sa",
-    "spring.datasource.password=",
-    "spring.rabbitmq.listener.simple.auto-startup=false",
-    "spring.rabbitmq.listener.direct.auto-startup=false",
-    "management.health.rabbit.enabled=false"
+        "spring.datasource.url=jdbc:h2:mem:catalog;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.rabbitmq.listener.simple.auto-startup=false",
+        "spring.rabbitmq.listener.direct.auto-startup=false",
+        "management.health.rabbit.enabled=false"
 })
 class CatalogPersistenceTests extends CatalogJwtTestSupport {
-    @Autowired BookRepository books;
-    @Autowired BookStatusRepository statuses;
-    @Autowired AuthorRepository authors;
-    @Autowired GenreRepository genres;
-    @Autowired TagRepository tags;
-    @Autowired ChapterRepository chapters;
-    @Autowired ChapterContentRepository contents;
-    @Autowired BookContentStatsRepository stats;
-    @Autowired BookEngagementProjectionRepository engagement;
-    @Autowired EntityManagerFactory entityManagers;
-    @Autowired PlatformTransactionManager transactionManager;
-    @Autowired JdbcTemplate jdbc;
+    @Autowired
+    BookRepository books;
+    @Autowired
+    BookStatusRepository statuses;
+    @Autowired
+    AuthorRepository authors;
+    @Autowired
+    GenreRepository genres;
+    @Autowired
+    TagRepository tags;
+    @Autowired
+    ChapterRepository chapters;
+    @Autowired
+    ChapterContentRepository contents;
+    @Autowired
+    BookContentStatsRepository stats;
+    @Autowired
+    BookEngagementProjectionRepository engagement;
+    @Autowired
+    EntityManagerFactory entityManagers;
+    @Autowired
+    PlatformTransactionManager transactionManager;
+    @Autowired
+    JdbcTemplate jdbc;
 
-    TransactionTemplate tx() { return new TransactionTemplate(transactionManager); }
+    TransactionTemplate tx() {
+        return new TransactionTemplate(transactionManager);
+    }
+
     Book book(String slug) {
         BookStatus status = new BookStatus();
         status.setSlug(UUID.randomUUID().toString());
@@ -52,6 +69,7 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         b.setCreatorId(UUID.randomUUID()); // Intentionally no Identity DB/FK.
         return books.saveAndFlush(b);
     }
+
     Chapter chapter(Book book, int index, boolean published) {
         Chapter c = new Chapter();
         c.setBook(book);
@@ -63,6 +81,7 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         if (published) c.setPublishedAt(Instant.now());
         return chapters.saveAndFlush(c);
     }
+
     ChapterContent content(Chapter chapter) {
         ChapterContent cc = new ChapterContent();
         cc.setChapter(chapter);
@@ -71,12 +90,14 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         return contents.saveAndFlush(cc);
     }
 
-    @Test void flywayAppliedAndEntitiesValidateAgainstSchema() {
+    @Test
+    void flywayAppliedAndEntitiesValidateAgainstSchema() {
         assertThat(jdbc.queryForList("SELECT \"version\" FROM \"flyway_schema_history\" WHERE \"success\"=TRUE AND \"type\"='SQL' ORDER BY \"installed_rank\"", String.class))
-            .containsExactly("1", "2", "3", "4", "5", "6", "7");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7");
     }
 
-    @Test void roundTripRelationsJsonAndSharedPrimaryKeys() {
+    @Test
+    void roundTripRelationsJsonAndSharedPrimaryKeys() {
         Long id = tx().execute(s -> {
             Book b = book(UUID.randomUUID().toString());
             Author author = new Author();
@@ -117,7 +138,8 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         });
     }
 
-    @Test void duplicateSlugAndChapterIndexAreRejected() {
+    @Test
+    void duplicateSlugAndChapterIndexAreRejected() {
         String slug = UUID.randomUUID().toString();
         Long id = tx().execute(s -> {
             Book b = book(slug);
@@ -125,15 +147,16 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
             return b.getId();
         });
         assertThatThrownBy(() -> tx().executeWithoutResult(s -> book(slug)))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> tx().executeWithoutResult(s -> chapter(books.findById(id).orElseThrow(), 1, false)))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    @Test void invalidIndexAndNegativeCountersAreRejected() {
+    @Test
+    void invalidIndexAndNegativeCountersAreRejected() {
         Long id = tx().execute(s -> book(UUID.randomUUID().toString()).getId());
         assertThatThrownBy(() -> tx().executeWithoutResult(s -> chapter(books.findById(id).orElseThrow(), 0, false)))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> tx().executeWithoutResult(s -> {
             BookContentStats value = new BookContentStats();
             value.setBook(books.findById(id).orElseThrow());
@@ -142,7 +165,8 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         })).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    @Test void publicReadsExcludeDraftDeletedAndHiddenParents() {
+    @Test
+    void publicReadsExcludeDraftDeletedAndHiddenParents() {
         Long id = tx().execute(s -> {
             Book b = book(UUID.randomUUID().toString());
             b.setPublished(true);
@@ -173,7 +197,8 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         });
     }
 
-    @Test void summaryOnlyCountsPublishedNonDeletedChaptersAndHandlesEmptyBook() {
+    @Test
+    void summaryOnlyCountsPublishedNonDeletedChaptersAndHandlesEmptyBook() {
         tx().executeWithoutResult(s -> {
             Book b = book(UUID.randomUUID().toString());
             var empty = chapters.summarizePublished(b.getId());
@@ -193,7 +218,8 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         });
     }
 
-    @Test void physicalPurgeCascadesOwnedRowsButPreservesTaxonomy() {
+    @Test
+    void physicalPurgeCascadesOwnedRowsButPreservesTaxonomy() {
         Long[] ids = tx().execute(s -> {
             Book b = book(UUID.randomUUID().toString());
             content(chapter(b, 1, false));
@@ -207,9 +233,9 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
             return new Long[]{b.getId(), genre.getId(), b.getStatus().getId()};
         });
         assertThatThrownBy(() -> jdbc.update("DELETE FROM book_statuses WHERE id=?", ids[2]))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.update("DELETE FROM genres WHERE id=?", ids[1]))
-            .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOf(DataIntegrityViolationException.class);
         jdbc.update("DELETE FROM books WHERE id=?", ids[0]);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chapters WHERE book_id=?", Long.class, ids[0])).isZero();
         assertThat(stats.findById(ids[0])).isEmpty();
@@ -217,7 +243,8 @@ class CatalogPersistenceTests extends CatalogJwtTestSupport {
         assertThat(statuses.existsById(ids[2])).isTrue();
     }
 
-    @Test void staleBookUpdateIsRejectedByOptimisticVersion() {
+    @Test
+    void staleBookUpdateIsRejectedByOptimisticVersion() {
         Long id = tx().execute(s -> book(UUID.randomUUID().toString()).getId());
         var first = entityManagers.createEntityManager();
         var second = entityManagers.createEntityManager();

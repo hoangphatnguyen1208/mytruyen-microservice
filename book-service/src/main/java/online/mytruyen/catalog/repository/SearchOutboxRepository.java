@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import online.mytruyen.catalog.domain.SearchOutboxEvent;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+
 import java.util.*;
 
 public interface SearchOutboxRepository extends JpaRepository<SearchOutboxEvent, UUID> {
