@@ -10,32 +10,30 @@ The Go module is `mytruyen-story-crawler`; run commands from this directory.
 Build context is `story-crawler/` with `story-crawler/Dockerfile`. The worker is intentionally
 not enabled in the default Compose stack while migration is incomplete.
 
-## Migration status
+## Internal import API
 
-Current direction: preserve the original worker's business logic and adapt the
-backend API. Endpoint/base-URL changes are permitted; changes to crawl selection,
-author fallback, chapter discovery, counters, publication or task chaining are
-not part of this migration. The default consumer still uses the old logic.
-The experimental `cmd/import-book` flow is retained for reference, **not** the
-replacement for that consumer. Do not wire it into the existing queue.
-See [legacy compatibility](../docs/migration/worker-legacy-compat.md).
-**Do not switch the consumer to the new backend in production yet:** crawl task
-endpoints are restored, but legacy book/chapter payload compatibility is pending.
+The queue consumer defaults to `MYTRUYEN_BACKEND_MODE=internal`. Backend data
+requests use `/api/v1/internal/import/crawler/**`; task chaining uses
+`/api/v1/internal/import/crawler/tasks/**`. Authentication still uses Identity.
+The account needs `ROLE_IMPORTER` or `ROLE_ADMIN`. Set the backend base URL to
+`http://localhost:8000/api/v1` when running through the API gateway.
 
-Completed foundation:
-- Validated API/RabbitMQ settings and bounded concurrency (default 2).
-- HTTP timeout (default 30s), shutdown cancellation and no automatic retry of
-  writes on network failures or server errors.
-- Lazy authentication, one retry after HTTP 401, serialized token refresh;
-  source API uses re-login. Tokens and authentication bodies are not logged.
-- Failed lookups do not trigger creates except when the API returns 404.
-- Overlapping scheduled checks are skipped within one worker process.
+On Book service, enable task publishing with `CRAWLER_ENABLED=true` and configure
+`RABBITMQ_QUEUE_CRAWL`. Set `CRAWLER_STATUS_MAP` to map source status IDs to
+local status slugs. The source `metruyencv` must be enabled in `import_sources`.
+The old `/worker/**` and `/rabbitmq/**` endpoints have been removed.
+
+Book, taxonomy and chapter imports retain the existing source ID mapping,
+idempotency checks and protection against overwriting local edits. Chapters
+contain metadata only: the source handler does not fetch chapter text.
+The existing mapping tables remain in use, so switching routes needs no schema
+migration. Only `internal` backend mode is supported.
 
 Configuration retains existing environment names. Optional `CRAWL_CONCURRENCY`
-overrides the legacy `CRAWL_COURUTINE_COUNT`; accepted range is 1â€“32.
-`HTTP_TIMEOUT` accepts a Go duration greater than zero and at most 5m.
-Backend base URL must include `/api/v1` where required. Credentials come from
-environment variables; never commit `.env` or real tokens.
+overrides `CRAWL_COURUTINE_COUNT`; accepted range is 1–32. `HTTP_TIMEOUT` accepts
+a Go duration greater than zero and at most 5m. Credentials come from environment
+variables; never commit `.env` or real tokens. Do not run multiple consumers
+against the same queue during cutover.
 
 ## Offline checks
 
@@ -47,20 +45,6 @@ go test -race ./...
 
 Tests use local HTTP test servers, not production credentials, RabbitMQ or a
 live crawl source. Race testing requires a supported C toolchain.
-
-## Remaining stages
-
-1. Backend adapter for existing book/taxonomy payloads and legacy-visible IDs.
-2. Backend adapter for existing chapter metadata including source word count and
-   publication flag; no forced draft/content-fetch workflow in the worker.
-3. Contract tests executing the existing handlers against compatibility APIs,
-   including author fallback, update/create branches and RabbitMQ task chaining.
-4. Reviewed existing-data migration, real PostgreSQL/RabbitMQ verification and
-   staged cutover. Any retry/reconciliation redesign is separate work, not an
-   implicit change to the original import logic.
-
-Do not run old and new workers against the same queue during cutover. No Docker
-or live crawler is needed for the offline checks above.
 
 ## Experimental metadata-only canary (superseded migration approach)
 
