@@ -12,6 +12,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +28,8 @@ import java.util.Set;
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public static final String USER_ID_HEADER = "X-User-Id";
     public static final String USER_ROLES_HEADER = "X-User-Roles";
+    private static final Set<String> OPENAPI_PATHS = Set.of(
+            "/api-docs/identity", "/api-docs/catalog", "/api-docs/search", "/api-docs/engagement");
     private static final Set<String> PUBLIC_GET_PREFIXES = Set.of(
             "/api/v1/books",
             "/api/v1/chapters",
@@ -40,6 +43,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtProperties properties;
 
+    @Value("${SWAGGER_ENABLED:false}")
+    private boolean swaggerEnabled;
+
     public JwtAuthenticationFilter(JwtProperties properties) {
         this.properties = properties;
     }
@@ -47,6 +53,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerWebExchange sanitizedExchange = removeIdentityHeaders(exchange);
+        if (OPENAPI_PATHS.contains(sanitizedExchange.getRequest().getPath().value()) && !swaggerEnabled) {
+            sanitizedExchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+            return sanitizedExchange.getResponse().setComplete();
+        }
         if (isPublicRequest(sanitizedExchange)) {
             return chain.filter(sanitizedExchange);
         }
@@ -116,6 +126,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private boolean isPublicRequest(ServerWebExchange exchange) {
         String path = exchange.getRequest().getPath().value();
         HttpMethod method = exchange.getRequest().getMethod();
+
+        if (HttpMethod.GET.equals(method) && OPENAPI_PATHS.contains(path)) {
+            return swaggerEnabled;
+        }
 
         if (HttpMethod.OPTIONS.equals(method)) {
             return true;

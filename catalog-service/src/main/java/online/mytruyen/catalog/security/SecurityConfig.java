@@ -18,6 +18,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(a -> a
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/docs", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/api/v1/internal/import/**").hasAnyRole("IMPORTER","ADMIN")
                 .requestMatchers("/api/v1/rabbitmq/**").hasAnyRole("IMPORTER","ADMIN")
                 .requestMatchers("/api/v1/worker/**").hasAnyRole("IMPORTER","ADMIN")

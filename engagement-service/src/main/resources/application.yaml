@@ -1,6 +1,13 @@
 server:
   port: ${ENGAGEMENT_PORT:${PORT:8004}}
 
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /docs
+
 spring:
   application:
     name: engagement-service

@@ -44,6 +44,18 @@ docker compose up --build
 
 The public Gateway listens on `http://localhost:8000`. RabbitMQ management is available on `http://localhost:15672` for local development.
 
+## API documentation
+
+Set `SWAGGER_ENABLED=true` in the service environment to enable Java OpenAPI and Swagger UI (disabled by default outside the local Compose configuration).
+
+- Gateway: http://localhost:8000/docs — select Identity, Book, Search or Engagement. API requests from this page go through Gateway.
+- Identity: http://localhost:8001/docs
+- Catalog: http://localhost:8002/docs
+- Search: http://localhost:8003/docs (FastAPI)
+- Engagement: http://localhost:8004/docs — the service is currently a skeleton with no domain endpoints and is not part of the Azure deployment.
+
+Use Identity's login endpoint to obtain an `access_token`, then paste it into **Authorize** for protected Identity/Catalog operations. Each selected service must be running for its specification to load. Java specifications are available at `/v3/api-docs`; Search uses `/openapi.json`. Gateway proxies them at `/api-docs/identity`, `/api-docs/catalog`, `/api-docs/search` and `/api-docs/engagement` only when Swagger is enabled.
+
 ## Build and test
 
 Docker Hub publishing after tests: [CI setup, image tags and rollback](docs/dockerhub-ci.md).

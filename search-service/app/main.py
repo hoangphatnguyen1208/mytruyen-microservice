@@ -20,7 +20,8 @@ def create_app(settings: Settings | None = None, transport=None) -> FastAPI:
             app.state.client = client
             yield
 
-    app = FastAPI(title="MyTruyen Search Service", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="MyTruyen Search Service", version="0.2.0", lifespan=lifespan,
+                  servers=[{"url": "/"}])
     app.include_router(router)
 
     @app.get("/health", tags=["operations"])

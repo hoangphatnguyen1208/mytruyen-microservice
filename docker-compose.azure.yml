@@ -71,6 +71,7 @@ services:
     mem_limit: 640m
     environment:
       CATALOG_PORT: ${CATALOG_PORT:-8002}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       <<: *jwt
       # TLS encryption only; require does not verify server identity in PostgreSQL JDBC.
       DB_URL: "jdbc:postgresql://${AZURE_PG_HOST:?required}:5432/mytruyen_catalog?sslmode=require&connectTimeout=10&tcpKeepAlive=true"
@@ -135,6 +136,7 @@ services:
     mem_limit: 384m
     environment:
       GATEWAY_PORT: ${GATEWAY_PORT:-8000}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       <<: *jwt
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx192m -XX:+ExitOnOutOfMemoryError"
       IDENTITY_SERVICE_URI: http://identity-service:${IDENTITY_PORT:-8001}

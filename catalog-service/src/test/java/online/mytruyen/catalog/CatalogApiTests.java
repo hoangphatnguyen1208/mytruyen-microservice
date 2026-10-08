@@ -12,13 +12,25 @@ import static org.assertj.core.api.Assertions.*;
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
     "spring.datasource.url=jdbc:h2:mem:catalog-api;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.username=sa","spring.datasource.password=",
-    "management.health.rabbit.enabled=false"
+    "management.health.rabbit.enabled=false",
+    "springdoc.api-docs.enabled=true", "springdoc.swagger-ui.enabled=true"
 })
 class CatalogApiTests extends CatalogJwtTestSupport {
     @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @LocalServerPort int port;
     final HttpClient client=HttpClient.newHttpClient();
     final ObjectMapper mapper=new ObjectMapper();
+    @Test void swaggerDocumentsApisAndBearerAuthWithoutRequiringLogin() throws Exception {
+        var specResponse = client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/v3/api-docs")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(specResponse.statusCode()).isEqualTo(200);
+        var spec = mapper.readTree(specResponse.body());
+        assertThat(spec.path("paths").has("/api/v1/books")).isTrue();
+        assertThat(spec.path("components").path("securitySchemes").path("bearerAuth").path("scheme").asText()).isEqualTo("bearer");
+        assertThat(spec.path("servers").get(0).path("url").asText()).isEqualTo("/");
+        var ui = client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/swagger-ui/index.html")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(ui.statusCode()).isEqualTo(200);
+        assertThat(ui.body()).contains("Swagger UI");
+    }
     HttpResponse<String> request(String method,String path,Object body,String jwt) throws Exception {
         var builder=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/v1"+path))
             .header("Content-Type","application/json");

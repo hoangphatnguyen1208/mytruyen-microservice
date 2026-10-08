@@ -41,6 +41,35 @@ class JwtAuthenticationFilterTests {
     }
 
     @Test
+    void documentationIsUnavailableWhenSwaggerIsDisabled() {
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api-docs/search").build());
+        AtomicBoolean forwarded = new AtomicBoolean(false);
+        StepVerifier.create(filter.filter(exchange, ignored -> {
+            forwarded.set(true);
+            return Mono.empty();
+        })).verifyComplete();
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(forwarded).isFalse();
+    }
+
+    @Test
+    void enabledDocumentationDoesNotRequireJwtOrExposeIdentityHeaders() {
+        org.springframework.test.util.ReflectionTestUtils.setField(filter, "swaggerEnabled", true);
+        var exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/api-docs/catalog")
+                .header(JwtAuthenticationFilter.USER_ID_HEADER, "forged-user").build());
+        AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
+        StepVerifier.create(filter.filter(exchange, value -> {
+            forwarded.set(value);
+            return Mono.empty();
+        })).verifyComplete();
+        assertThat(forwarded.get()).isNotNull();
+        assertThat(forwarded.get().getRequest().getHeaders().getFirst(JwtAuthenticationFilter.USER_ID_HEADER)).isNull();
+        var protectedExchange = MockServerWebExchange.from(MockServerHttpRequest.patch("/api/v1/books/id/1").build());
+        StepVerifier.create(filter.filter(protectedExchange, ignored -> Mono.empty())).verifyComplete();
+        assertThat(protectedExchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void rejectsProtectedRequestWithoutToken() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.patch("/api/v1/books/id/1").build()

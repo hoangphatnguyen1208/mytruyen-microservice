@@ -95,6 +95,7 @@ services:
     build: ./catalog-service
     environment:
       CATALOG_PORT: ${CATALOG_PORT:-8002}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       SEARCH_SYNC_ENABLED: "true"
       LEGACY_WORKER_COMPAT_ENABLED: ${LEGACY_WORKER_COMPAT_ENABLED:-false}
       RABBITMQ_QUEUE_CRAWL: ${RABBITMQ_QUEUE_CRAWL:-}
@@ -118,6 +119,7 @@ services:
     build: ./engagement-service
     environment:
       ENGAGEMENT_PORT: ${ENGAGEMENT_PORT:-8004}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       DB_URL: jdbc:postgresql://engagement-db:5432/${ENGAGEMENT_POSTGRES_DB:-mytruyen_engagement}
       DB_USERNAME: ${POSTGRES_USER:-mytruyen}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -190,6 +192,7 @@ services:
     ports: ["${GATEWAY_BIND_ADDRESS:-0.0.0.0}:${GATEWAY_PORT:-8000}:${GATEWAY_PORT:-8000}"]
     environment:
       GATEWAY_PORT: ${GATEWAY_PORT:-8000}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
       IDENTITY_SERVICE_URI: http://identity-service:${IDENTITY_PORT:-8001}
       CATALOG_SERVICE_URI: http://catalog-service:${CATALOG_PORT:-8002}
       ENGAGEMENT_SERVICE_URI: http://engagement-service:${ENGAGEMENT_PORT:-8004}
