@@ -135,26 +135,11 @@ services:
   search-service:
     build: ./search-service
     environment:
+      SEARCH_SYNC_ENABLED: "true"
       SEARCH_PORT: ${SEARCH_PORT:-8003}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_SEARCH_KEY:-${MEILI_MASTER_KEY}}
-      CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    depends_on:
-      meilisearch:
-        condition: service_started
-      book-service:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-
-  search-indexer:
-    build: ./search-service
-    command: ["python", "-m", "app.sync.worker"]
-    restart: unless-stopped
-    environment:
-      MEILI_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_WRITE_KEY:-${MEILI_MASTER_KEY}}
+      MEILI_WRITE_KEY: ${MEILI_WRITE_KEY:-${MEILI_MASTER_KEY}}
       CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-mytruyen}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
     depends_on:
@@ -170,7 +155,7 @@ services:
     build: ./story-crawler
     restart: unless-stopped
     environment:
-      MYTRUYEN_BACKEND: http://mytruyen-api-gateway:${GATEWAY_PORT:-8000}/api/v1
+      MYTRUYEN_BACKEND: http://api-gateway:${GATEWAY_PORT:-8000}/api/v1
       MYTRUYEN_BACKEND_MODE: compat
       MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
       MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}

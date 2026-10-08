@@ -1,4 +1,4 @@
-# Search service — legacy text-search read path
+# Search Service — API and integrated indexing
 
 GET /api/v1/search/meili?query=...&limit=10&page=1 preserves the old route, response envelope and Meilisearch rank. Required query is at most 500 characters (empty is allowed, as in the old backend); limit is 1–100 and page is 1–10000. Invalid parameters return FastAPI 422.
 
@@ -22,28 +22,30 @@ Hybrid/audio/YouTube endpoints continue returning 503, as the legacy backend did
 
 ## Important limitation
 
-Search requires a books index containing IDs that match Catalog. The offline rebuild below seeds existing/imported data. Ongoing Book changes and Author renames now synchronize through Catalog's transactional search outbox and the separate `search-indexer` process. No production data/index was changed by this migration.
+Search requires a books index containing IDs that match Catalog. The offline rebuild below seeds existing/imported data. Ongoing Book changes and Author renames now synchronize through Catalog's transactional search outbox and the integrated consumer in `search-service`. No production data/index was changed by this migration.
 
 ## Automatic synchronization
 
-Compose enables Catalog's `SEARCH_SYNC_ENABLED` publisher and starts `python -m app.sync.worker` in `search-indexer`. Local Catalog tests leave the relay disabled. The worker receives persistent book invalidations, reads current public Catalog state, waits for Meili tasks, then ACKs. Draft/deleted books are removed. Single-active-consumer and prefetch 1 serialize writes; duplicates/out-of-order notifications rehydrate current state rather than restoring historical snapshots.
+Set `SEARCH_SYNC_ENABLED=true` on both Book Service and Search Service. The FastAPI lifespan starts the RabbitMQ consumer as a background task inside Search Service; no separate indexer process is needed. It reconnects after consumer failures and cancels the consumer on shutdown so unacknowledged messages can be redelivered. `/health` reports API liveness; `/health/ready` returns 503 while an enabled consumer is disconnected. Synchronization defaults to disabled for standalone read-only runs and tests.
 
-After five failed attempts, messages move to `mytruyen.search.sync.v1.dead` with confirmed delivery before ACK. Repair the cause, then run `python -m app.sync.replay --max-messages 100` in the indexer environment. Invalid events remain for investigation. This is eventual consistency, not exactly-once delivery or unattended recovery from every dependency failure.
+The consumer receives persistent book invalidations, reads current public Book Service state, waits for Meili tasks, then ACKs. Draft/deleted books are removed. Single-active-consumer and prefetch 1 serialize writes; duplicates/out-of-order notifications rehydrate current state rather than restoring historical snapshots.
 
-`RABBITMQ_URL` is secret; `SYNC_TASK_TIMEOUT` defaults to 120 seconds. Production must set `MEILI_SEARCH_KEY` for the API and `MEILI_WRITE_KEY` for the indexer in Compose; both map to the process's `MEILI_MASTER_KEY` setting for compatibility. Blank restricted keys fall back to the master only for local/bootstrap use. The indexer enforces searchable fields name/author and displayed fields id/name/author when it first handles work.
+After five failed attempts, messages move to `mytruyen.search.sync.v1.dead` with confirmed delivery before ACK. Repair the cause, then run `python -m app.sync.replay --max-messages 100` with Search Service's broker settings and a Meilisearch write key. Invalid events remain for investigation. This is eventual consistency, not exactly-once delivery or unattended recovery from every dependency failure.
+
+`RABBITMQ_URL` is secret; `SYNC_TASK_TIMEOUT` defaults to 120 seconds. Set `MEILI_MASTER_KEY` to a restricted read key for API requests and `MEILI_WRITE_KEY` to a restricted write key for the integrated consumer. Compose maps `MEILI_SEARCH_KEY` to the API's `MEILI_MASTER_KEY`. An empty write key falls back to the API key only for local/bootstrap use; production requires both restricted keys. The consumer enforces searchable fields name/author and displayed fields id/name/author when it first handles work.
 
 See [deployment](../docs/deployment.md) and [verification/operations](../docs/migration/verification.md).
 
 ## Offline index rebuild
 
-1. Back up Meilisearch. Pause Catalog book/author/taxonomy/chapter writes and every competing index writer/rebuild job, including **all search-indexer instances**. Keep writes paused until the command finishes or an uncertain task status is resolved. The flag below is an operator acknowledgement, not an automatic lock.
+1. Back up Meilisearch. Pause Catalog book/author/taxonomy/chapter writes and every competing index writer/rebuild job, including **all integrated search consumers**. Keep writes paused until the command finishes or an uncertain task status is resolved. The flag below is an operator acknowledgement, not an automatic lock.
 2. Configure CATALOG_URL, MEILI_URL, MEILI_INDEX and MEILI_MASTER_KEY. The rebuild key needs index create/get/swap, settings get/update, documents add, stats and task-read permissions for both target and generated staging names. Do not expose this write key to clients; normal search should use a restricted key.
 3. From search-service run:
 
 ```powershell
 uv run python -m app.rebuild --catalog-writes-paused
-# Compose: export a maintenance MEILI_MASTER_KEY securely first; keep the indexer stopped.
-docker compose run --rm --no-deps -e MEILI_MASTER_KEY search-indexer python -m app.rebuild --catalog-writes-paused
+# Compose: stop search-service to pause its consumer; export a maintenance MEILI_MASTER_KEY securely first.
+docker compose run --rm --no-deps -e MEILI_MASTER_KEY search-service python -m app.rebuild --catalog-writes-paused
 ```
 
 The command reads public Catalog books in ascending ID pages of 100, extracts only id/name/author, and verifies ordered IDs, constant total, complete pages and final Meilisearch document count. It copies existing target settings; a fresh index searches name/author by default. Existing custom settings must remain compatible with these three indexed fields. A new UUID-named staging index is used for every run.

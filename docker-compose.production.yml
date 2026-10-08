@@ -26,7 +26,5 @@ services:
     <<: *runtime
   search-service:
     <<: *runtime
-  search-indexer:
-    <<: *runtime
   api-gateway:
     <<: *runtime

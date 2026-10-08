@@ -1,4 +1,4 @@
-"""Run as one logical index writer: python -m app.sync.worker.
+"""Integrated index consumer started by the Search Service lifespan.
 
 Rabbit single-active-consumer + prefetch=1 serializes current-state rehydration.
 Stop ALL index writers before offline rebuild. DLQ replay must rehydrate, never
@@ -44,8 +44,8 @@ async def process(message, indexer, dead_letter, *, sleep=asyncio.sleep):
         return
 
 
-async def run():
-    settings = Settings()
+async def run(settings: Settings | None = None, *, on_ready=None):
+    settings = settings or Settings()
     connection = await aio_pika.connect_robust(settings.rabbitmq_url.get_secret_value())
     async with connection, httpx.AsyncClient(timeout=settings.request_timeout, follow_redirects=False) as client:
         channel = await connection.channel(publisher_confirms=True, on_return_raises=True)
@@ -69,6 +69,8 @@ async def run():
             ), routing_key=QUEUE + ".dead", mandatory=True, timeout=10)
 
         initialized = False
+        if on_ready is not None:
+            on_ready()
         async with queue.iterator() as messages:
             async for message in messages:
                 try:

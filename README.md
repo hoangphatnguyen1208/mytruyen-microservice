@@ -7,7 +7,7 @@
 | `api-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
 | `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Implemented; local integration tests, PostgreSQL deployment pending |
 | `book-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | CRUD + chapter publication/statistics/outbox; event delivery next |
-| `search-service` | Python 3.12 / FastAPI | Search API and search projections | Text search + offline staged rebuild; automatic synchronization pending |
+| `search-service` | Python 3.12 / FastAPI | Search API and integrated RabbitMQ indexing consumer | Search, offline rebuild and automatic synchronization in one process |
 | `story-crawler` | Go 1.26 | Existing crawler and Catalog import migration | Imported from the standalone worker repo; cutover pending |
 | `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 

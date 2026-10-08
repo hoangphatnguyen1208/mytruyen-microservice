@@ -95,30 +95,13 @@ services:
     <<: *runtime
     image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-search-service:${IMAGE_TAG:?required}
     platform: linux/amd64
-    mem_limit: 256m
+    mem_limit: 512m
     environment:
+      SEARCH_SYNC_ENABLED: "true"
       SEARCH_PORT: ${SEARCH_PORT:-8003}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_SEARCH_KEY:?required}
-      CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
-      RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
-    depends_on:
-      book-service:
-        condition: service_started
-      meilisearch:
-        condition: service_started
-      rabbitmq:
-        condition: service_healthy
-
-  search-indexer:
-    <<: *runtime
-    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-search-service:${IMAGE_TAG:?required}
-    platform: linux/amd64
-    mem_limit: 256m
-    command: ["python", "-m", "app.sync.worker"]
-    environment:
-      MEILI_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_WRITE_KEY:?required}
+      MEILI_WRITE_KEY: ${MEILI_WRITE_KEY:?required}
       CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
     depends_on:
@@ -160,7 +143,7 @@ services:
     mem_limit: 256m
     environment:
       GOMEMLIMIT: "192MiB"
-      MYTRUYEN_BACKEND: http://mytruyen-api-gateway:${GATEWAY_PORT:-8000}/api/v1
+      MYTRUYEN_BACKEND: http://api-gateway:${GATEWAY_PORT:-8000}/api/v1
       MYTRUYEN_BACKEND_MODE: compat
       MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
       MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}
