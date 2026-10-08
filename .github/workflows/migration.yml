@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [identity-service, catalog-service, mytruyen-gateway, engagement-service]
+        service: [identity-service, book-service, api-gateway, engagement-service]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -34,14 +34,14 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-go@v5
-        if: matrix.service == 'catalog-service'
+        if: matrix.service == 'book-service'
         with:
-          go-version-file: worker/go.mod
-          cache-dependency-path: worker/go.sum
+          go-version-file: story-crawler/go.mod
+          cache-dependency-path: story-crawler/go.sum
       - run: bash gradlew test bootJar --no-daemon
         working-directory: ${{ matrix.service }}
         env:
-          RUN_WORKER_CONTRACT_TESTS: ${{ matrix.service == 'catalog-service' && 'true' || 'false' }}
+          RUN_WORKER_CONTRACT_TESTS: ${{ matrix.service == 'book-service' && 'true' || 'false' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -61,25 +61,25 @@ jobs:
       - run: uv run --locked pytest -q
         working-directory: search-service
 
-  worker:
+  crawler:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
       run:
-        working-directory: worker
+        working-directory: story-crawler
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: worker/go.mod
-          cache-dependency-path: worker/go.sum
+          go-version-file: story-crawler/go.mod
+          cache-dependency-path: story-crawler/go.sum
       - run: go test -race ./...
       - run: go vet ./...
       - run: go build ./...
 
   docker-publish:
     name: Publish ${{ matrix.service }}
-    needs: [java, python, worker]
+    needs: [java, python, crawler]
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_images)
@@ -89,7 +89,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        service: [identity-service, catalog-service, engagement-service, mytruyen-gateway, search-service, worker]
+        service: [identity-service, book-service, engagement-service, api-gateway, search-service, story-crawler]
     steps:
       - uses: actions/checkout@v4
       - name: Validate Docker Hub configuration
@@ -115,7 +115,7 @@ jobs:
           file: ./${{ matrix.service }}/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service == 'mytruyen-gateway' && 'gateway' || matrix.service }}:sha-${{ github.sha }}
+          tags: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service }}:sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -125,13 +125,13 @@ jobs:
           sbom: true
       - name: Record published digest
         env:
-          IMAGE: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service == 'mytruyen-gateway' && 'gateway' || matrix.service }}
+          IMAGE: docker.io/${{ vars.DOCKERHUB_USERNAME }}/mytruyen-${{ matrix.service }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: echo "Published $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
   integration:
     if: github.event_name == 'workflow_dispatch' && inputs.run_integration
-    needs: [java, python, worker]
+    needs: [java, python, crawler]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

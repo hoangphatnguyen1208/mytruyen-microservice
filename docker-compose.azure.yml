@@ -64,9 +64,9 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
 
-  catalog-service:
+  book-service:
     <<: *runtime
-    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-catalog-service:${IMAGE_TAG:?set sha-FULL_COMMIT_SHA}
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-book-service:${IMAGE_TAG:?set sha-FULL_COMMIT_SHA}
     platform: linux/amd64
     mem_limit: 640m
     environment:
@@ -100,10 +100,10 @@ services:
       SEARCH_PORT: ${SEARCH_PORT:-8003}
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_SEARCH_KEY:?required}
-      CATALOG_URL: http://catalog-service:${CATALOG_PORT:-8002}
+      CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
     depends_on:
-      catalog-service:
+      book-service:
         condition: service_started
       meilisearch:
         condition: service_started
@@ -119,19 +119,19 @@ services:
     environment:
       MEILI_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_WRITE_KEY:?required}
-      CATALOG_URL: http://catalog-service:${CATALOG_PORT:-8002}
+      CATALOG_URL: http://book-service:${CATALOG_PORT:-8002}
       RABBITMQ_URL: ${APP_RABBITMQ_URL:?set URL with encoded credentials and rabbitmq hostname}
     depends_on:
-      catalog-service:
+      book-service:
         condition: service_started
       meilisearch:
         condition: service_started
       rabbitmq:
         condition: service_healthy
 
-  mytruyen-gateway:
+  api-gateway:
     <<: *runtime
-    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-gateway:${IMAGE_TAG:?required}
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-api-gateway:${IMAGE_TAG:?required}
     platform: linux/amd64
     mem_limit: 384m
     environment:
@@ -140,7 +140,7 @@ services:
       <<: *jwt
       JAVA_TOOL_OPTIONS: "-Xms64m -Xmx192m -XX:+ExitOnOutOfMemoryError"
       IDENTITY_SERVICE_URI: http://identity-service:${IDENTITY_PORT:-8001}
-      CATALOG_SERVICE_URI: http://catalog-service:${CATALOG_PORT:-8002}
+      CATALOG_SERVICE_URI: http://book-service:${CATALOG_PORT:-8002}
       SEARCH_SERVICE_URI: http://search-service:${SEARCH_PORT:-8003}
       # Engagement is unavailable in this deployment; never point it at another service.
       ENGAGEMENT_SERVICE_URI: http://127.0.0.1:9
@@ -149,18 +149,18 @@ services:
     ports: ["127.0.0.1:${GATEWAY_PORT:-8000}:${GATEWAY_PORT:-8000}"]
     depends_on:
       - identity-service
-      - catalog-service
+      - book-service
       - search-service
 
-  worker:
+  story-crawler:
     <<: *runtime
-    profiles: [worker]
-    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-worker:${IMAGE_TAG:?required}
+    profiles: [crawler]
+    image: docker.io/${DOCKERHUB_USERNAME:?required}/mytruyen-story-crawler:${IMAGE_TAG:?required}
     platform: linux/amd64
     mem_limit: 256m
     environment:
       GOMEMLIMIT: "192MiB"
-      MYTRUYEN_BACKEND: http://mytruyen-gateway:${GATEWAY_PORT:-8000}/api/v1
+      MYTRUYEN_BACKEND: http://mytruyen-api-gateway:${GATEWAY_PORT:-8000}/api/v1
       MYTRUYEN_BACKEND_MODE: compat
       MYTRUYEN_EMAIL: ${MYTRUYEN_EMAIL:-}
       MYTRUYEN_PASSWORD: ${MYTRUYEN_PASSWORD:-}
@@ -172,7 +172,7 @@ services:
       CRAWL_CONCURRENCY: "1"
       HTTP_TIMEOUT: 30s
     depends_on:
-      mytruyen-gateway:
+      api-gateway:
         condition: service_started
       rabbitmq:
         condition: service_healthy

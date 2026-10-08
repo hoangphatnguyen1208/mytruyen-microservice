@@ -1,0 +1,59 @@
+server:
+  port: ${CATALOG_PORT:${PORT:8002}}
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /docs
+
+spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  application:
+    name: book-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/mytruyen_catalog}
+    username: ${DB_USERNAME:mytruyen}
+    password: ${DB_PASSWORD:mytruyen}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:mytruyen}
+    password: ${RABBITMQ_PASSWORD:mytruyen}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+
+catalog:
+  legacy-worker:
+    enabled: ${LEGACY_WORKER_COMPAT_ENABLED:false}
+    queue: ${RABBITMQ_QUEUE_CRAWL:}
+    confirm-timeout-ms: 5000
+    status-map: '${LEGACY_WORKER_STATUS_MAP:{}}'
+  search-sync:
+    enabled: ${SEARCH_SYNC_ENABLED:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+jwt:
+  public-key: ${JWT_PUBLIC_KEY_BASE64}
+  issuer: ${JWT_ISSUER:mytruyen-auth}
+  audience: ${JWT_AUDIENCE:mytruyen-api}

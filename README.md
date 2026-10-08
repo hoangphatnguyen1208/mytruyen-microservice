@@ -4,11 +4,11 @@
 
 | Directory | Runtime | Responsibility | Current phase |
 |---|---|---|---|
-| `mytruyen-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
+| `api-gateway` | Java 17 / Spring Cloud Gateway | Public entry point, routing and edge JWT policy | Existing, routed to the new service names |
 | `identity-service` | Java 17 / Spring Boot | Users, roles, credentials, authentication and refresh sessions | Implemented; local integration tests, PostgreSQL deployment pending |
-| `catalog-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | CRUD + chapter publication/statistics/outbox; event delivery next |
+| `book-service` | Java 17 / Spring Boot | Books, authors, taxonomy, chapters and chapter content | CRUD + chapter publication/statistics/outbox; event delivery next |
 | `search-service` | Python 3.12 / FastAPI | Search API and search projections | Text search + offline staged rebuild; automatic synchronization pending |
-| `worker` | Go 1.26 | Existing crawler and Catalog import migration | Imported from the standalone worker repo; cutover pending |
+| `story-crawler` | Go 1.26 | Existing crawler and Catalog import migration | Imported from the standalone worker repo; cutover pending |
 | `engagement-service` | Java 17 / Spring Boot | Comments, reviews, ratings and bookmarks | Walking skeleton; implementation is deferred |
 
 Auth and User have been consolidated into [Identity](identity-service/README.md). Their former source is retained in Git history. Identity handles registration, login, refresh rotation, logout, account administration and self-service profiles without credential HTTP calls. See its README for API compatibility changes and offline user import instructions.
@@ -50,11 +50,11 @@ Set `SWAGGER_ENABLED=true` in the service environment to enable Java OpenAPI and
 
 - Gateway: http://localhost:8000/docs — select Identity, Book, Search or Engagement. API requests from this page go through Gateway.
 - Identity: http://localhost:8001/docs
-- Catalog: http://localhost:8002/docs
+- Book: http://localhost:8002/docs
 - Search: http://localhost:8003/docs (FastAPI)
 - Engagement: http://localhost:8004/docs — the service is currently a skeleton with no domain endpoints and is not part of the Azure deployment.
 
-Use Identity's login endpoint to obtain an `access_token`, then paste it into **Authorize** for protected Identity/Catalog operations. Each selected service must be running for its specification to load. Java specifications are available at `/v3/api-docs`; Search uses `/openapi.json`. Gateway proxies them at `/api-docs/identity`, `/api-docs/catalog`, `/api-docs/search` and `/api-docs/engagement` only when Swagger is enabled.
+Use Identity's login endpoint to obtain an `access_token`, then paste it into **Authorize** for protected Identity/Catalog operations. Each selected service must be running for its specification to load. Java specifications are available at `/v3/api-docs`; Search uses `/openapi.json`. Gateway proxies them at `/api-docs/identity`, `/api-docs/book`, `/api-docs/search` and `/api-docs/engagement` only when Swagger is enabled.
 
 ## Build and test
 
@@ -64,15 +64,15 @@ Java services:
 
 ```powershell
 .\identity-service\gradlew.bat -p identity-service build
-.\catalog-service\gradlew.bat -p catalog-service build
+.\book-service\gradlew.bat -p book-service build
 .\engagement-service\gradlew.bat -p engagement-service build
-.\mytruyen-gateway\gradlew.bat -p mytruyen-gateway test
+.\api-gateway\gradlew.bat -p api-gateway test
 ```
 
-Go worker (run inside `worker/`; tests do not crawl or require Docker):
+Go worker (run inside `story-crawler/`; tests do not crawl or require Docker):
 
 ```powershell
-Push-Location worker
+Push-Location story-crawler
 go test ./...
 go vet ./...
 go build ./...
@@ -93,7 +93,7 @@ Push-Location search-service; uv run pytest; Pop-Location
 2. Identity implementation complete; rehearse PostgreSQL migration and account-data cutover before deployment.
 3. Implement Catalog schema/API and migrate book/chapter data.
 4. Search read/rebuild and automatic outbox projection implemented; real dependency/staging verification remains a deployment gate.
-5. Complete the Go crawler cutover in `worker/`; this is the only crawl/import worker.
+5. Complete the Go crawler cutover in `story-crawler/`; this is the only crawl/import worker.
 6. Implement Engagement only when its product APIs are scheduled.
 7. Canary cutover and archive the monolith/legacy services.
 
